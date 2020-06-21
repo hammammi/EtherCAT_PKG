@@ -219,16 +219,16 @@ boolean ecat_init(uint32_t mode)
     return inOP;
 }
 
-void EPOS_CSP(void *arg)
+void EPOS_CSV(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
     int ival = 0, i;
 
-    if (ecat_init(0x08)==FALSE)
+    if (ecat_init(0x09)==FALSE)
     {
         run = 0;
-        printf("EPOS CSP FAIL");
+        printf("EPOS CSV FAIL");
         return;
     }
     rt_task_sleep(1e6);
@@ -297,13 +297,13 @@ void EPOS_CSP(void *arg)
         if (cur_DCtime > max_DCtime)
             max_DCtime = cur_DCtime;
 
-        //servo-on
+        //servo-on (section for controlword sutdown/switch/enable)
         for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
         {
             controlword=0;
             started[i]=ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
             epos4_drive_pt[i].ptOutParam->ControlWord=controlword;
-            if (started[i]) ServoState |= (1<<i);
+            if (started[i]) ServoState |= (1<<i); //started[i] is same as enable
         }
 
         if (ServoState == (1<<NUMOFEPOS4_DRIVE)-1) //all servos are in ON state
@@ -317,7 +317,8 @@ void EPOS_CSP(void *arg)
             ready_cnt=10000;
             sys_ready=1;
         }
-
+        
+        // operation (not yet changed, I have to change for vel)
         if (sys_ready)
         {
             ival=(int) (sine_amp*(cos(PI2*f*gt))-sine_amp);
@@ -359,7 +360,7 @@ void EPOS_CSP(void *arg)
 
     rt_task_sleep(cycle_ns);
 
-    rt_printf("End EPOS CSP control, close socket\n");
+    rt_printf("End EPOS CSV control, close socket\n");
     /* stop SOEM, close socket */
     printf("Request safe operational state for all slaves\n");
     ec_slave[0].state = EC_STATE_SAFE_OP;
@@ -454,7 +455,7 @@ int main(int argc, char *argv[])
     rt_task_create(&print_task, "ec_printing", 0, 50, 0 );
     rt_task_set_affinity(&print_task, &cpu_set_print); //CPU affinity for printing task
 
-    rt_task_start(&motion_task, &EPOS_CSP, NULL);
+    rt_task_start(&motion_task, &EPOS_CSV, NULL);
     rt_task_start(&print_task, &print_run, NULL);
 
     while (run)
