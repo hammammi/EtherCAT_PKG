@@ -81,9 +81,9 @@ boolean ecat_init(uint32_t mode)
                     wkc_count=ec_SDOwrite(k+1, 0x1c13, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
                     // subindex 0x00 : number of assigned object
-                    os=sizeof(ob3); ob3 = 0x00; //init
+                    os=sizeof(ob3); ob3 = 0x00; //init (disable)
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-                    os=sizeof(ob); ob = 0x60410010;  //
+                    os=sizeof(ob); ob = 0x60410010;  // index 2byte subindex 2byte length 2byte
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x01, FALSE, os, &ob, EC_TIMEOUTRXM);
                     os=sizeof(ob); ob = 0x60640020;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x02, FALSE, os, &ob, EC_TIMEOUTRXM);
