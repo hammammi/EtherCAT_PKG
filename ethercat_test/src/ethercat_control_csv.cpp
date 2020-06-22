@@ -74,22 +74,24 @@ boolean ecat_init(uint32_t mode)
                 if (( ec_slavecount >= 1 ) && (strcmp(ec_slave[k+1].name,"EPOS4") == 0)) //change name for other drives
                 {
                     rt_printf("Re mapping for EPOS4 %d...\n", k+1);
-                    os=sizeof(ob); ob = 0x00;	//RxPDO, check MAXPOS ESI
+                    os=sizeof(ob); ob = 0x00;	//RxPDO, check MAXPOS ESI (number of object init)
                     //0x1c12 is Index of Sync Manager 2 PDO Assignment (output RxPDO), CA (Complete Access) must be TRUE
                     wkc_count=ec_SDOwrite(k+1, 0x1c12, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    //0x1c13 is Index of Sync Manager 3 PDO Assignment (input TxPDO)
                     wkc_count=ec_SDOwrite(k+1, 0x1c13, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 0x00;
+                    // subindex 0x00 : number of assigned object
+                    os=sizeof(ob3); ob3 = 0x00; //init
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-                    os=sizeof(ob); ob = 0x60410010;
+                    os=sizeof(ob); ob = 0x60410010;  //
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x01, FALSE, os, &ob, EC_TIMEOUTRXM);
                     os=sizeof(ob); ob = 0x60640020;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x02, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    os=sizeof(ob3); ob3 = 0x02;
+                    os=sizeof(ob3); ob3 = 0x02;   // we will use 2 object
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     if (wkc_count==0)
                     {
-                        rt_printf("RxPDO assignment error\n");
+                        rt_printf("TxPDO assignment error\n");
                         //return FALSE;
                     }
                     os=sizeof(ob3); ob3 = 0x00;
@@ -109,7 +111,7 @@ boolean ecat_init(uint32_t mode)
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     if (wkc_count==0)
                     {
-                        rt_printf("TxPDO assignment error\n");
+                        rt_printf("RxPDO assignment error\n");
                         //return FALSE;
                     }
 
@@ -120,6 +122,7 @@ boolean ecat_init(uint32_t mode)
                     os=sizeof(ob3); ob3 = 0x00;
                     wkc_count=ec_SDOwrite(k+1, 0x1603, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
+                    // assign Sync Managers
                     os=sizeof(ob2); ob2 = 0x1600;
                     wkc_count=ec_SDOwrite(k+1, 0x1C12, 0x01, FALSE, os, &ob2, EC_TIMEOUTRXM);
                     os=sizeof(ob3); ob3 = 0x01;
@@ -130,6 +133,7 @@ boolean ecat_init(uint32_t mode)
                     os=sizeof(ob3); ob3 = 0x01;
                     wkc_count=ec_SDOwrite(k+1, 0x1C13, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
+                    
                     os=sizeof(ob3); ob3 = 0x01;
                     wkc_count=ec_SDOwrite(k+1, 0x60C2, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
