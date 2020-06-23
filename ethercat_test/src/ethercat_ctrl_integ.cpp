@@ -16,6 +16,7 @@
 
 #define EC_TIMEOUTMON 500
 #define NUMOFEPOS4_DRIVE	2
+//18
 #define NSEC_PER_SEC 1000000000
 unsigned int cycle_ns = 1000000;
 
@@ -46,14 +47,14 @@ int recv_fail_cnt = 0;
 double gt = 0;
 
 int32_t zeropos[NUMOFEPOS4_DRIVE] = {0};
-double sine_amp = 172000, f=0.05, period;
+double sine_amp = 3000, f=0.05, period;
 
 int os;
 uint32_t ob;
 uint16_t ob2;
 uint8_t  ob3;
 
-boolean ecat_init(uint32_t mode)
+boolean ecat_init(void *arg)
 {
     int i, oloop, iloop, chk, wkc_count;
     needlf = FALSE;
@@ -146,6 +147,10 @@ boolean ecat_init(uint32_t mode)
                     os=sizeof(ob3); ob3 = 0x01;
                     wkc_count=ec_SDOwrite(k+1, 0x60C2, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     // Modes of operation, CSP : 0x08, CSV : 0x09
+                    if (k==0) {mode = 0x08;}
+                    else {mode = 0x09;}
+                    //if (k<14) {mode = 0x08;}
+                    //else {mode = 0x09;}
                     os=sizeof(ob3); ob3 = mode;
                     wkc_count=ec_SDOwrite(k+1, 0x6060, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     // Following Error Window for position (set to 100,000)
@@ -334,26 +339,37 @@ void EPOS_OP(void *arg)
         // operation (not yet changed, I have to change for vel)
         if (sys_ready)
         {
-            ival=(int) (sine_amp*(cos(PI2*f*gt))-sine_amp);
-            for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
+            for (i=0; i<(NUMOFEPOS4_DRIVE-1); ++i)
             {
+                ival=(int) 5*(sine_amp*(cos(PI2*f*gt))-sine_amp);
                 if (i%2==0)
                     epos4_drive_pt[i].ptOutParam->TargetPosition=ival + zeropos[i];
                 else
                     epos4_drive_pt[i].ptOutParam->TargetPosition=-ival + zeropos[i];
             }
+            for (i=(NUMOFEPOS4_DRIVE-1);i<NUMOFEPOS4_DRIVE; ++i)
+                {
+                ival=(int) (sine_amp*(cos(PI2*f*gt))-sine_amp);
+                if (i%2==0)
+                    epos4_drive_pt[i].ptOutParam->TargetVelocity=ival + zeropos[i];
+                else
+                    epos4_drive_pt[i].ptOutParam->TargetVelocity=-ival + zeropos[i];
+            }            
             gt+=period;
         }
         else
         {
-            for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
+            for (i=0; i<(NUMOFEPOS4_DRIVE-1); ++i)
             {
                 zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
                 epos4_drive_pt[i].ptOutParam->TargetPosition=zeropos[i];
             }
+            for (i=(NUMOFEPOS4_DRIVE-1);i<NUMOFEPOS4_DRIVE; ++i)
+            {
+                zeropos[i]=0;
+                epos4_drive_pt[i].ptOutParam->TargetVelocity=zeropos[i];
+            }
         }
-
-
         if (sys_ready)
             if (worst_time<ethercat_time) worst_time=ethercat_time;
     }
