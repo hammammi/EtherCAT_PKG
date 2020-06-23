@@ -468,7 +468,7 @@ void wheel_callback(const mobile_control::motorMsg& msg)
 {
     for (int i=0; i<NUMOFEPOS4_DRIVE; ++i)
     {
-        desinc[i] = msg.omega1;
+        wheeldes[i] = msg.omega1;
     }
 }
 
