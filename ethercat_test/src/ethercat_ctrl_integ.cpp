@@ -18,7 +18,7 @@
 #include "ecat_dc.h"
 
 #define EC_TIMEOUTMON 500
-#define NUMOFEPOS4_DRIVE	2
+#define NUMOFEPOS4_DRIVE	3
 //18
 #define NSEC_PER_SEC 1000000000
 unsigned int cycle_ns = 1000000;
@@ -74,8 +74,9 @@ boolean ecat_init(void)
         {
             rt_printf("%d slaves found and configured.\n", ec_slavecount);
 
-            for (int k=0; k<NUMOFEPOS4_DRIVE; ++k)
+            for (int k=1; k<NUMOFEPOS4_DRIVE; ++k)
             {
+		//rt_printf("slave name is %s...\n", ec_slave[k].name);
                 if (( ec_slavecount >= 1 ) && (strcmp(ec_slave[k+1].name,"EPOS4") == 0)) //change name for other drives
                 {
                     rt_printf("Re mapping for EPOS4 %d...\n", k+1);
@@ -152,7 +153,7 @@ boolean ecat_init(void)
                     wkc_count=ec_SDOwrite(k+1, 0x60C2, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     // Modes of operation, CSP : 0x08, CSV : 0x09
                     uint8_t mode;
-                    if (k==0) {mode = 0x08;}
+                    if (k==1) {mode = 0x08;}
                     else {mode = 0x09;}
                     //if (k<14) {mode = 0x08;}
                     //else {mode = 0x09;}
@@ -205,7 +206,7 @@ boolean ecat_init(void)
             if (ec_slave[0].state == EC_STATE_OPERATIONAL)
             {
                 rt_printf("Operational state reached for all slaves.\n");
-                for (int k=0; k<NUMOFEPOS4_DRIVE; ++k)
+                for (int k=1; k<NUMOFEPOS4_DRIVE; ++k)
                 {
                     epos4_drive_pt[k].ptOutParam=(EPOS4_DRIVE_RxPDO_t*)  ec_slave[k+1].outputs;
                     epos4_drive_pt[k].ptInParam= (EPOS4_DRIVE_TxPDO_t*)  ec_slave[k+1].inputs;
@@ -218,13 +219,13 @@ boolean ecat_init(void)
                 ec_readstate();
                 for (i=1; i<ec_slavecount; i++)
                 {
-                    if (ec_slave[i].state != EC_STATE_OPERATIONAL)
+                    if (ec_slave[i+1].state != EC_STATE_OPERATIONAL)
                     {
                         printf("Slave %d State 0x%2.2x StatusCode=0x%4.4x : %s\n",
-                               i, ec_slave[i].state, ec_slave[i].ALstatuscode, ec_ALstatuscode2string(ec_slave[i].ALstatuscode));
+                               i, ec_slave[i+1].state, ec_slave[i].ALstatuscode, ec_ALstatuscode2string(ec_slave[i+1].ALstatuscode));
                     }
                 }
-                for (i=0; i<NUMOFEPOS4_DRIVE; i++)
+                for (i=1; i<NUMOFEPOS4_DRIVE; i++)
                     ec_dcsync0(i+1, FALSE, 0, 0);
             }
         }
@@ -263,7 +264,7 @@ void EPOS_OP(void *arg)
     int32_t shift_time = 380000;
     long long diff_dc32;
 
-    for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
+    for (i=1; i<NUMOFEPOS4_DRIVE; ++i)
         ec_dcsync0(i+1, TRUE, cycle_ns, 0);
 
     RTIME cycletime = cycle_ns;
@@ -321,7 +322,7 @@ void EPOS_OP(void *arg)
             max_DCtime = cur_DCtime;
 
         //servo-on (section for controlword sutdown/switch/enable)
-        for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
+        for (i=1; i<NUMOFEPOS4_DRIVE; ++i)
         {
             controlword=0;
             started[i]=ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
@@ -329,7 +330,7 @@ void EPOS_OP(void *arg)
             if (started[i]) ServoState |= (1<<i); //started[i] is same as enable
         }
 
-        if (ServoState == (1<<NUMOFEPOS4_DRIVE)-1) //all servos are in ON state
+        if (ServoState == (1<<NUMOFEPOS4_DRIVE)-2) //all servos are in ON state
         {
             if (servo_ready==0)
                 servo_ready=1;
@@ -344,7 +345,7 @@ void EPOS_OP(void *arg)
         // operation (not yet changed, I have to change for vel)
         if (sys_ready)
         {
-            for (i=0; i<(NUMOFEPOS4_DRIVE-1); ++i)
+            for (i=1; i<(NUMOFEPOS4_DRIVE-1); ++i)
             {
                 ival=(int) 5*(sine_amp*(cos(PI2*f*gt))-sine_amp);
                 if (i%2==0)
@@ -364,7 +365,7 @@ void EPOS_OP(void *arg)
         }
         else
         {
-            for (i=0; i<(NUMOFEPOS4_DRIVE-1); ++i)
+            for (i=1; i<(NUMOFEPOS4_DRIVE-1); ++i)
             {
                 zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
                 epos4_drive_pt[i].ptOutParam->TargetPosition=zeropos[i];
@@ -381,11 +382,11 @@ void EPOS_OP(void *arg)
 
     rt_task_sleep(cycle_ns);
 
-    for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
+    for (i=1; i<NUMOFEPOS4_DRIVE; ++i)
         ec_dcsync0(i+1, FALSE, 0, 0); // SYNC0,1 on slave 1
 
     //Servo OFF
-    for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
+    for (i=1; i<NUMOFEPOS4_DRIVE; ++i)
     {
         epos4_drive_pt[i].ptOutParam->ControlWord=6; //Servo OFF (Disable voltage, transition#9)
     }
@@ -456,7 +457,7 @@ void print_run(void *arg)
 //                     rt_printf("\n");
 //                 }
 //                 rt_printf("\n");
-                msg.position[0] = epos4_drive_pt[0].ptInParam->PositionActualValue;
+                msg.position[0] = epos4_drive_pt[1].ptInParam->PositionActualValue;
                 pos_pub.publish(msg);
                 
             }
