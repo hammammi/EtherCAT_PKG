@@ -9,6 +9,8 @@
 #include <alchemy/timer.h>
 #include <xenomai/init.h>
 
+#include "ethercat_test/pos.h"
+#include "mobile_control/motorMsg.h"
 #include "soem/ethercat.h"
 #include "pdo_def.h"
 #include "servo_def.h"
@@ -47,6 +49,7 @@ int recv_fail_cnt = 0;
 double gt = 0;
 
 int32_t zeropos[NUMOFEPOS4_DRIVE] = {0};
+int32_t wheeldes[NUMOFEPOS4_DRIVE] = {0};
 double sine_amp = 3000, f=0.05, period;
 
 int os;
@@ -54,7 +57,7 @@ uint32_t ob;
 uint16_t ob2;
 uint8_t  ob3;
 
-boolean ecat_init(void *arg)
+boolean ecat_init(void)
 {
     int i, oloop, iloop, chk, wkc_count;
     needlf = FALSE;
@@ -147,6 +150,7 @@ boolean ecat_init(void *arg)
                     os=sizeof(ob3); ob3 = 0x01;
                     wkc_count=ec_SDOwrite(k+1, 0x60C2, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     // Modes of operation, CSP : 0x08, CSV : 0x09
+                    uint8_t mode;
                     if (k==0) {mode = 0x08;}
                     else {mode = 0x09;}
                     //if (k<14) {mode = 0x08;}
@@ -243,10 +247,10 @@ void EPOS_OP(void *arg)
     uint16_t controlword=0;
     int ival = 0, i;
 
-    if (ecat_init(0x09)==FALSE)
+    if (ecat_init()==FALSE)
     {
         run = 0;
-        printf("EPOS CSV FAIL");
+        printf("EPOS INIT FAIL");
         return;
     }
     rt_task_sleep(1e6);
@@ -349,7 +353,7 @@ void EPOS_OP(void *arg)
             }
             for (i=(NUMOFEPOS4_DRIVE-1);i<NUMOFEPOS4_DRIVE; ++i)
                 {
-                ival=(int) (sine_amp*(cos(PI2*f*gt))-sine_amp);
+                ival=(int) (wheeldes[0]*(cos(PI2*f*gt))-wheeldes[0]);
                 if (i%2==0)
                     epos4_drive_pt[i].ptOutParam->TargetVelocity=ival + zeropos[i];
                 else
@@ -412,6 +416,15 @@ void print_run(void *arg)
     int i;
     unsigned long itime = 0;
     long stick = 0;
+    int argc;
+    char** argv;
+    ethercat_test::pos msg;
+    ros::init(argc, argv, "mani_joint_pub");
+
+    ros::NodeHandle n;
+    ros::Publisher pos_pub = n.advertise<ethercat_test::pos>("motor_pos",1);    
+    
+    
     rt_task_set_periodic(NULL, TM_NOW, 1e8);
 
     while (run)
@@ -430,20 +443,31 @@ void print_run(void *arg)
             else
             {
                 itime++;
-                rt_printf("Time = %06d.%01d, \e[32;1m fail=%ld\e[0m, ecat_T=%ld, maxT=%ld\n",
-                          itime/10, itime%10, recv_fail_cnt, ethercat_time/1000, worst_time/1000);
-                for(i=0; i<NUMOFEPOS4_DRIVE; ++i)
-                {
-                    rt_printf("EPOS4_DRIVE #%i\n", i+1);
-                    rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
-                    rt_printf("Actual Position = %i / %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue
-                            , epos4_drive_pt[i].ptOutParam->TargetPosition);
-                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
-                    rt_printf("\n");
-                }
-                rt_printf("\n");
+//                 rt_printf("Time = %06d.%01d, \e[32;1m fail=%ld\e[0m, ecat_T=%ld, maxT=%ld\n",
+//                           itime/10, itime%10, recv_fail_cnt, ethercat_time/1000, worst_time/1000);
+//                 for(i=0; i<NUMOFEPOS4_DRIVE; ++i)
+//                 {
+//                     rt_printf("EPOS4_DRIVE #%i\n", i+1);
+//                     rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
+//                     rt_printf("Actual Position = %i / %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue
+//                             , epos4_drive_pt[i].ptOutParam->TargetPosition);
+//                     rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
+//                     rt_printf("\n");
+//                 }
+//                 rt_printf("\n");
+                msg.position[0] = epos4_drive_pt[0].ptInParam->PositionActualValue;
+                pos_pub.publish(msg);
+                
             }
         }
+    }
+}
+
+void wheel_callback(const mobile_control::motorMsg& msg)
+{
+    for (int i=0; i<NUMOFEPOS4_DRIVE; ++i)
+    {
+        desinc[i] = msg.omega1;
     }
 }
 
@@ -477,6 +501,10 @@ int main(int argc, char *argv[])
     cpu_set_t cpu_set_print;
     CPU_ZERO(&cpu_set_print);
     CPU_SET(1, &cpu_set_print); //assign CPU#1 (or any) for main task
+    
+    ros::init(argc, argv, "cmd_vel_sub");
+    ros::NodeHandle n;
+    ros::Subscriber sub = n.subscribe("input_msg",1, wheel_callback);
 
     rt_task_create(&motion_task, "SOEM_motion_task", 0, 90, 0 );
     rt_task_set_affinity(&motion_task, &cpu_set_ecat); //CPU affinity for ethercat task
@@ -486,11 +514,13 @@ int main(int argc, char *argv[])
 
     rt_task_start(&motion_task, &EPOS_OP, NULL);
     rt_task_start(&print_task, &print_run, NULL);
+    
+    ros::spin();
 
-    while (run)
-    {
-        usleep(1000000);
-    }
+//     while (run)
+//     {
+//         usleep(1000000);
+//     }
 
 
     printf("End program\n");
