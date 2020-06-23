@@ -38,7 +38,7 @@ RT_TASK ecceck_task;
 RTIME now, previous;
 long ethercat_time_send, ethercat_time_read = 0;
 long ethercat_time = 0, worst_time = 0;
-char ecat_ifname[32] = "enp0s25";
+char ecat_ifname[32] = "enp2s0";
 int run = 1;
 int sys_ready = 0;
 
@@ -81,19 +81,25 @@ boolean ecat_init(uint32_t mode)
                     wkc_count=ec_SDOwrite(k+1, 0x1c13, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
                     // subindex 0x00 : number of assigned object
-                    os=sizeof(ob3); ob3 = 0x00; //init (disable)
+                    // send 0x00 to disable (init)
+                    os=sizeof(ob3); ob3 = 0x00; 
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-                    os=sizeof(ob); ob = 0x60410010;  // index 2byte subindex 2byte length(data type) 2byte
+                    // index 2byte subindex 2byte length(data type) 2byte
+                    os=sizeof(ob); ob = 0x60410010;    // StatusWord UINT16
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x01, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    os=sizeof(ob); ob = 0x60640020;
+                    os=sizeof(ob); ob = 0x60640020;    // PositionActualValue  INT32
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x02, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    os=sizeof(ob3); ob3 = 0x02;   // we will use 2 object
+                    os=sizeof(ob); ob = 0x606C0020;    // VelocityActualValue  INT32
+                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    // we will use 3 object
+                    os=sizeof(ob3); ob3 = 0x03;     
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     if (wkc_count==0)
                     {
                         rt_printf("TxPDO assignment error\n");
                         //return FALSE;
                     }
+                    // make other mapping TxPDO disabled 
                     os=sizeof(ob3); ob3 = 0x00;
                     wkc_count=ec_SDOwrite(k+1, 0x1A01, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     os=sizeof(ob3); ob3 = 0x00;
@@ -101,13 +107,16 @@ boolean ecat_init(uint32_t mode)
                     os=sizeof(ob3); ob3 = 0x00;
                     wkc_count=ec_SDOwrite(k+1, 0x1A03, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
+                    // simillar to TxPDO
                     os=sizeof(ob3); ob3 = 0x00;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-                    os=sizeof(ob); ob = 0x60400010;
+                    os=sizeof(ob); ob = 0x60400010;  // ControlWord UINT16
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x01, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    os=sizeof(ob); ob = 0x607A0020;
+                    os=sizeof(ob); ob = 0x607A0020;  // TargetPosition INT32
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x02, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    os=sizeof(ob3); ob3 = 0x02;
+                    os=sizeof(ob); ob = 0x60FF0020;  // TargetVelocity INT32
+                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    os=sizeof(ob3); ob3 = 0x03;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     if (wkc_count==0)
                     {
@@ -122,7 +131,7 @@ boolean ecat_init(uint32_t mode)
                     os=sizeof(ob3); ob3 = 0x00;
                     wkc_count=ec_SDOwrite(k+1, 0x1603, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
-                    // assign Sync Managers
+                    // assign Sync Managers (2,3)
                     os=sizeof(ob2); ob2 = 0x1600;
                     wkc_count=ec_SDOwrite(k+1, 0x1C12, 0x01, FALSE, os, &ob2, EC_TIMEOUTRXM);
                     os=sizeof(ob3); ob3 = 0x01;
@@ -133,13 +142,13 @@ boolean ecat_init(uint32_t mode)
                     os=sizeof(ob3); ob3 = 0x01;
                     wkc_count=ec_SDOwrite(k+1, 0x1C13, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
-                    
+                    // Interpolation time period --> 1 ms for etherCAT                    
                     os=sizeof(ob3); ob3 = 0x01;
                     wkc_count=ec_SDOwrite(k+1, 0x60C2, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
+                    // Modes of operation, CSP : 0x08, CSV : 0x09
                     os=sizeof(ob3); ob3 = mode;
                     wkc_count=ec_SDOwrite(k+1, 0x6060, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
+                    // Following Error Window for position (set to 100,000)
                     os=sizeof(ob); ob = 0x000186A0;
                     wkc_count=ec_SDOwrite(k+1, 0x6065, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
                 }
@@ -223,7 +232,7 @@ boolean ecat_init(uint32_t mode)
     return inOP;
 }
 
-void EPOS_CSV(void *arg)
+void EPOS_OP(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
@@ -459,7 +468,7 @@ int main(int argc, char *argv[])
     rt_task_create(&print_task, "ec_printing", 0, 50, 0 );
     rt_task_set_affinity(&print_task, &cpu_set_print); //CPU affinity for printing task
 
-    rt_task_start(&motion_task, &EPOS_CSV, NULL);
+    rt_task_start(&motion_task, &EPOS_OP, NULL);
     rt_task_start(&print_task, &print_run, NULL);
 
     while (run)
