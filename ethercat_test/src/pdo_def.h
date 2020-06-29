@@ -25,6 +25,7 @@ typedef struct PACKED
 {
 	UINT16	ControlWord;		//0x6040
 	INT32	TargetPosition;		//0x607A
+	INT32	TargetVelocity;		//0x60FF
 	//INT32	PositionOffset;		//0x60B0
 	//INT32	VelocityOffset;		//0x60B1
 	//INT16	TorqueOffset;		//0x60B2
@@ -34,12 +35,12 @@ typedef struct PACKED
 //0x1A00 TxPDO
 typedef struct PACKED
 {
-	UINT16	StatusWord;					//0x6041
+	UINT16	StatusWord;			//0x6041
 	INT32	PositionActualValue;		//0x6064
-	//INT32	VelocityActualValue;		//0x606C
+	INT32	VelocityActualValue;		//0x606C
 	//INT16	TorqueActualValue;			//0x6077
 	//UINT8	ModeOfOperationDisplay;		//0x6061
-	//UINT32	DigitalInput;				//0x60FD
+	UINT32	DigitalInput;				//0x60FD
 }EPOS4_DRIVE_TxPDO_t;
 
 
