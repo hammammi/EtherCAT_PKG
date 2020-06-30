@@ -18,8 +18,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   soem
   std_msgs
+	vehicle_control
   genmsg
-  message_generation
+	message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -59,7 +60,6 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    pos.msg
-#   Message2.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -139,6 +139,16 @@ add_dependencies(simpletest ethercat_test_generate_messages_cpp)
 add_executable(ethercat_control src/ethercat_control.cpp)
 target_link_libraries(ethercat_control ${catkin_LIBRARIES} SERVO ECAT_DC m)
 add_dependencies(ethercat_control ethercat_test_generate_messages_cpp)
+
+add_executable(ethercat_control_csv src/ethercat_control_csv.cpp)
+target_link_libraries(ethercat_control_csv ${catkin_LIBRARIES} SERVO ECAT_DC m)
+add_dependencies(ethercat_control_csv ethercat_test_generate_messages_cpp)
+
+add_executable(ethercat_profile src/ethercat_profile.cpp)
+target_link_libraries(ethercat_profile ${catkin_LIBRARIES} SERVO ECAT_DC m)
+add_dependencies(ethercat_profile ethercat_test_generate_messages_cpp)
+
+
 
 
 ## Declare a C++ library
