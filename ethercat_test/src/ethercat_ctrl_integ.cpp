@@ -1,3 +1,4 @@
+#include <ros/ros.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -197,7 +198,7 @@ boolean ecat_init(void)//uint32_t mode)
 //            else if(mode==0x09)
 //            {
 
-                for (k=NUMOFMANI_DRIVE+2; k<(NUMOFEPOS_DRIVE+2); ++k)
+                for (int k=NUMOFMANI_DRIVE+2; k<(NUMOFEPOS4_DRIVE+2); ++k)
                 {
                     if (( ec_slavecount >= 1 ) && (strcmp(ec_slave[k].name,"EPOS4") == 0)) //change name for other drives
                     {
@@ -436,7 +437,7 @@ void EPOS_OP(void *arg)
             max_DCtime = cur_DCtime;
 
         //servo-on
-        for (i=0; i<NUMOFEMANI_DRIVE; ++i)
+        for (i=0; i<NUMOFMANI_DRIVE; ++i)
         {
             if (limit_flag)
                 epos4_drive_pt[i].ptOutParam->ControlWord=2;
@@ -733,7 +734,7 @@ void catch_signal(int sig)
     run = 0;
     usleep(5e5);
     rt_task_delete(&motion_task);
-    rt_task_delete(&print_task);
+    rt_task_delete(&pub_task);
     exit(1);
 }
 
