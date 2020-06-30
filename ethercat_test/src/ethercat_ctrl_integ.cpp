@@ -656,10 +656,10 @@ void pub_run(void *arg)
                     {
                         msg.position[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
                     }
-                msg2.omega1 = epos4_drive_pt[NUMOFEPOS4_DRIVE-3].ptInParam->VelocityActualValue;
-                msg2.omega2 = epos4_drive_pt[NUMOFEPOS4_DRIVE-2].ptInParam->VelocityActualValue;
-                msg2.omega3 = epos4_drive_pt[NUMOFEPOS4_DRIVE-1].ptInParam->VelocityActualValue;
-                msg2.omega4 = epos4_drive_pt[NUMOFEPOS4_DRIVE].ptInParam->VelocityActualValue;
+                msg2.omega1 = epos4_drive_pt[NUMOFEPOS4_DRIVE-4].ptInParam->VelocityActualValue;
+                msg2.omega2 = epos4_drive_pt[NUMOFEPOS4_DRIVE-3].ptInParam->VelocityActualValue;
+                msg2.omega3 = epos4_drive_pt[NUMOFEPOS4_DRIVE-2].ptInParam->VelocityActualValue;
+                msg2.omega4 = epos4_drive_pt[NUMOFEPOS4_DRIVE-1].ptInParam->VelocityActualValue;
 
                 pub1.publish(msg);
                 pub2.publish(msg2);
