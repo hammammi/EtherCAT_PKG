@@ -53,11 +53,13 @@
   <build_depend>rospy</build_depend>
   <build_depend>soem</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>vehicle_control</build_depend>
   <build_depend>message_generation</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>soem</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>vehicle_control</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>soem</exec_depend>
