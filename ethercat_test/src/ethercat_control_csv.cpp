@@ -20,7 +20,7 @@
 #include "ecat_dc.h"
 
 #define EC_TIMEOUTMON 500
-#define NUMOFMANI_DRIVE     4
+#define NUMOFMANI_DRIVE     0
 #define NUMOFWHEEL_DRIVE    2
 #define NUMOFEPOS4_DRIVE	NUMOFMANI_DRIVE + NUMOFWHEEL_DRIVE
 #define NUMOFMANI_DRIVE_HALF     NUMOFMANI_DRIVE/2
@@ -56,7 +56,7 @@ int wait = 0;
 int recv_fail_cnt = 0;
 int gt = 0;
 
-int32_t zeropos[NUMOFWHEEL_DRIVE] = {0}; // initial pos
+int32_t curvel[NUMOFWHEEL_DRIVE] = {0}; // current vel
 int32_t wheeldes[NUMOFWHEEL_DRIVE] = {0};
 
 int os;
