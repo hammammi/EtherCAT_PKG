@@ -58,6 +58,9 @@ int gt = 0;
 
 int32_t curvel[NUMOFWHEEL_DRIVE] = {0}; // current vel
 int32_t wheeldes[NUMOFWHEEL_DRIVE] = {0};
+int32_t a_lim_w = 1000; // rpm/s
+int32_t v_lim_w = 3000; // rpm
+
 
 int os;
 uint32_t ob;
@@ -345,14 +348,29 @@ void EPOS_OP(void *arg)
             for (i=0; i<NUMOFWHEEL_DRIVE; ++i)
 
             {
+                curvel[i] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
+                if (wheeldes[i] > curvel[i]) { a_lim_w = abs(a_lim_w);}
+                else {a_lim_w = -abs(a_lim_w);}
+                
+                if (c_w < abs(wheeldes[i] - curvel[i])){
+                    if (gt >0 && gt <= (t_w*1000) ){
+                        v_des = curvel[i] + a_lim_w*(sin()+1);
+                        epos4_drive_pt[i].ptOutParam->TargetVelocity=v_des;}
+                    else {
+                        v_des = curvel[i] + a_lim_w;
+                        epos4_drive_pt[i].ptOutParam->TargetVelocity=v_des;}
+                else{
+                    epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];}                
+                            
+                        
 //                ival=(int) (wheeldes[i]*(cos(PI2*f*gt))-wheeldes[i]);
 //                if (i%2==0)
 //                    epos4_drive_pt[i].ptOutParam->TargetVelocity=ival + zeropos[i];
 //                else
 //                    epos4_drive_pt[i].ptOutParam->TargetVelocity=-ival + zeropos[i];
-                epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];
+//                epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];
             }
-    
+        gt += 1;
 
         } // sysready
         else
