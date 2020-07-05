@@ -60,7 +60,8 @@ int32_t curvel[NUMOFWHEEL_DRIVE] = {0}; // current vel
 int32_t wheeldes[NUMOFWHEEL_DRIVE] = {0};
 int32_t a_lim_w = 1000; // rpm/s
 int32_t v_lim_w = 3000; // rpm
-
+float c_w;
+float t_w;
 
 int os;
 uint32_t ob;
@@ -516,6 +517,9 @@ int main(int argc, char** argv)
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
     printf("use default adapter %s\n", ecat_ifname);
+    
+    c_w = 20;
+    t_w = v_lim_w/a_lim_w;
 
     cpu_set_t cpu_set_ecat;
     CPU_ZERO(&cpu_set_ecat);
