@@ -354,7 +354,7 @@ void EPOS_OP(void *arg)
                 
                 if (c_w < abs(wheeldes[i] - curvel[i])){
                     if (gt >0 && gt <= (t_w*1000) ){
-                        v_des = curvel[i] + a_lim_w*(sin()+1);
+                        v_des = curvel[i] + a_lim_w*(sin(2*M_PI/t_w*(gt*0.001-M_PI/2))+1);
                         epos4_drive_pt[i].ptOutParam->TargetVelocity=v_des;}
                     else {
                         v_des = curvel[i] + a_lim_w;
