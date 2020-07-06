@@ -12,7 +12,9 @@ dualarm_mobile_mservo의
 vehicle_control wheel_odometry
 sim_control tracking_pd_controller   
 path_planner velocity_plan   
-활용
+활용   
+
+rostopic pub 사용할 시 /move_base_simple 사용, qx 0 qy 0 qz 0 qw 1
 
 - ethercat_ctrl_integ :    
 junction 사용, manipulator position control & wheel velocity control
