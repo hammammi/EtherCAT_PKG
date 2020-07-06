@@ -1,6 +1,7 @@
 # EtherCAT_PKG   
 
 xenomai, soem 필요   
+관리자 권한 터미널  (sudo -s) 에서 실행   
 사용 시 ecat_ifname 항상 확인..   
 
 - ethercat_control_csv :    
