@@ -1,3 +1,4 @@
+
 #include <ros/ros.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,7 +22,7 @@
 
 #define EC_TIMEOUTMON 500
 #define NUMOFMANI_DRIVE     0
-#define NUMOFWHEEL_DRIVE    2
+#define NUMOFWHEEL_DRIVE    4
 #define NUMOFEPOS4_DRIVE	NUMOFMANI_DRIVE + NUMOFWHEEL_DRIVE
 #define NUMOFMANI_DRIVE_HALF     NUMOFMANI_DRIVE/2
 
@@ -47,22 +48,24 @@ RT_TASK pub_task;
 RTIME now, previous;
 long ethercat_time_send, ethercat_time_read = 0;
 long ethercat_time = 0, worst_time = 0;
-char ecat_ifname[32] = "enxb827eba0807b";
+char ecat_ifname[32] = "enp2s0";
 int run = 1;
 int sys_ready = 0;
 boolean limit_flag = FALSE;
 
 int wait = 0;
 int recv_fail_cnt = 0;
-int gt = 0;
+int gt[4] = {0};
 
 int32_t curvel[NUMOFWHEEL_DRIVE] = {0}; // current vel
 int32_t wheeldes[NUMOFWHEEL_DRIVE] = {0};
+int32_t v_des;
 int32_t a_lim_w = 1000; // rpm/s
 int32_t v_lim_w = 3000; // rpm
 float c_w;
 float t_w;
 
+int start = 0;
 int os;
 uint32_t ob;
 uint16_t ob2;
@@ -226,7 +229,7 @@ boolean ecat_init(void)//uint32_t mode)
                                i, ec_slave[i+1].state, ec_slave[i+1].ALstatuscode, ec_ALstatuscode2string(ec_slave[i+1].ALstatuscode));
                     }
                 }
-                for (i=0; i<NUMOFEPOS4_DRIVE; i++)
+                for (i=0; i<NUMOFWHEEL_DRIVE; i++)
                     ec_dcsync0(i+1, FALSE, 0, 0);
             }
         }
@@ -349,19 +352,26 @@ void EPOS_OP(void *arg)
             for (i=0; i<NUMOFWHEEL_DRIVE; ++i)
 
             {
-                curvel[i] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
-                if (wheeldes[i] > curvel[i]) { a_lim_w = abs(a_lim_w);}
+               // curvel[i] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
+                if (wheeldes[i] > epos4_drive_pt[i].ptInParam->VelocityActualValue) { a_lim_w = abs(a_lim_w);}
                 else {a_lim_w = -abs(a_lim_w);}
                 
-                if (c_w < abs(wheeldes[i] - curvel[i])){
-                    if (gt >0 && gt <= (t_w*1000) ){
-                        v_des = curvel[i] + a_lim_w*(sin(2*M_PI/t_w*(gt*0.001-M_PI/2))+1);
-                        epos4_drive_pt[i].ptOutParam->TargetVelocity=v_des;}
-                    else {
-                        v_des = curvel[i] + a_lim_w;
-                        epos4_drive_pt[i].ptOutParam->TargetVelocity=v_des;}
-                else{
-                    epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];}                
+              //  if (100 < abs(wheeldes[i] - epos4_drive_pt[i].ptInParam->VelocityActualValue)){
+                 //   if (gt[i] >=0 && gt[i] <= (t_w*1000) ){
+                  //      v_des = curvel[i] + a_lim_w*0.001*gt[i];//*(sin(2*M_PI/t_w*(gt[i]*0.001-M_PI/2))+1);
+					//	ROS_INFO("%d",sin(2*M_PI/t_w*(gt[i]*0.001-M_PI/2)));
+                   //     ROS_INFO("v_des%d is %d , %d",i,v_des,curvel[i]);
+                 //       epos4_drive_pt[i].ptOutParam->TargetVelocity=v_des;
+	//					gt[i] += 1;}
+                //    else {
+                        //v_des = curvel[i] + a_lim_w*0.001;
+		//				ROS_INFO("!v_des%d is %d",i,wheeldes[i]);
+      //                  epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];//v_des;
+//}
+	//				}
+               // else{
+              //      epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];
+				//	ROS_INFO("!!v_des%d is %d",i,wheeldes[i]);}                
                             
                         
 //                ival=(int) (wheeldes[i]*(cos(PI2*f*gt))-wheeldes[i]);
@@ -369,9 +379,11 @@ void EPOS_OP(void *arg)
 //                    epos4_drive_pt[i].ptOutParam->TargetVelocity=ival + zeropos[i];
 //                else
 //                    epos4_drive_pt[i].ptOutParam->TargetVelocity=-ival + zeropos[i];
-//                epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];
+                epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];
+        	
             }
-        gt += 1;
+        
+        ROS_INFO("gt is %d, %d",gt[0],gt[1]);
 
         } // sysready
         else
@@ -479,8 +491,8 @@ void pub_run(void *arg)
 
                 msg2.omega1 = epos4_drive_pt[0].ptInParam->VelocityActualValue;
                 msg2.omega2 = epos4_drive_pt[1].ptInParam->VelocityActualValue;
-     //           msg2.omega3 = epos4_drive_pt[2].ptInParam->VelocityActualValue;
-       //         msg2.omega4 = epos4_drive_pt[3].ptInParam->VelocityActualValue;
+                msg2.omega3 = epos4_drive_pt[2].ptInParam->VelocityActualValue;
+                msg2.omega4 = epos4_drive_pt[3].ptInParam->VelocityActualValue;
 
                 pub2.publish(msg2);
             }
@@ -494,10 +506,12 @@ void pub_run(void *arg)
 
 void wheel_callback(const vehicle_control::motorsMsg& msg)
 {
+	if (wheeldes[0]!= msg.omega1) curvel[0] = epos4_drive_pt[0].ptInParam->VelocityActualValue;//gt[0] = 0;
+	if (wheeldes[1]!= msg.omega2) curvel[1] = epos4_drive_pt[1].ptInParam->VelocityActualValue;//gt[1] = 0;
     wheeldes[0] = msg.omega1;
     wheeldes[1] = msg.omega2;
-  //  wheeldes[2] = msg.omega3;
- //   wheeldes[3] = msg.omega4;
+    wheeldes[2] = msg.omega3;
+    wheeldes[3] = msg.omega4;
 }
 
 void catch_signal(int sig)
@@ -551,4 +565,3 @@ int main(int argc, char** argv)
 
 
 }
-
