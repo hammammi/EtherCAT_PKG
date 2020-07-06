@@ -21,10 +21,8 @@
 #include "ecat_dc.h"
 
 #define EC_TIMEOUTMON 500
-#define NUMOFMANI_DRIVE     0
+
 #define NUMOFWHEEL_DRIVE    4
-#define NUMOFEPOS4_DRIVE	NUMOFMANI_DRIVE + NUMOFWHEEL_DRIVE
-#define NUMOFMANI_DRIVE_HALF     NUMOFMANI_DRIVE/2
 
 #define NSEC_PER_SEC 1000000000
 unsigned int cycle_ns = 1000000; // nanosecond
@@ -55,17 +53,9 @@ boolean limit_flag = FALSE;
 
 int wait = 0;
 int recv_fail_cnt = 0;
-int gt[4] = {0};
 
-int32_t curvel[NUMOFWHEEL_DRIVE] = {0}; // current vel
 int32_t wheeldes[NUMOFWHEEL_DRIVE] = {0};
-int32_t v_des;
-int32_t a_lim_w = 1000; // rpm/s
-int32_t v_lim_w = 3000; // rpm
-float c_w;
-float t_w;
 
-int start = 0;
 int os;
 uint32_t ob;
 uint16_t ob2;
@@ -352,38 +342,9 @@ void EPOS_OP(void *arg)
             for (i=0; i<NUMOFWHEEL_DRIVE; ++i)
 
             {
-               // curvel[i] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
-                if (wheeldes[i] > epos4_drive_pt[i].ptInParam->VelocityActualValue) { a_lim_w = abs(a_lim_w);}
-                else {a_lim_w = -abs(a_lim_w);}
-                
-              //  if (100 < abs(wheeldes[i] - epos4_drive_pt[i].ptInParam->VelocityActualValue)){
-                 //   if (gt[i] >=0 && gt[i] <= (t_w*1000) ){
-                  //      v_des = curvel[i] + a_lim_w*0.001*gt[i];//*(sin(2*M_PI/t_w*(gt[i]*0.001-M_PI/2))+1);
-					//	ROS_INFO("%d",sin(2*M_PI/t_w*(gt[i]*0.001-M_PI/2)));
-                   //     ROS_INFO("v_des%d is %d , %d",i,v_des,curvel[i]);
-                 //       epos4_drive_pt[i].ptOutParam->TargetVelocity=v_des;
-	//					gt[i] += 1;}
-                //    else {
-                        //v_des = curvel[i] + a_lim_w*0.001;
-		//				ROS_INFO("!v_des%d is %d",i,wheeldes[i]);
-      //                  epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];//v_des;
-//}
-	//				}
-               // else{
-              //      epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];
-				//	ROS_INFO("!!v_des%d is %d",i,wheeldes[i]);}                
-                            
-                        
-//                ival=(int) (wheeldes[i]*(cos(PI2*f*gt))-wheeldes[i]);
-//                if (i%2==0)
-//                    epos4_drive_pt[i].ptOutParam->TargetVelocity=ival + zeropos[i];
-//                else
-//                    epos4_drive_pt[i].ptOutParam->TargetVelocity=-ival + zeropos[i];
                 epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i];
         	
             }
-        
-        ROS_INFO("gt is %d, %d",gt[0],gt[1]);
 
         } // sysready
         else
@@ -476,18 +437,6 @@ void pub_run(void *arg)
             else
             {
                 itime++;
-//                rt_printf("Time = %06d.%01d, \e[32;1m fail=%ld\e[0m, ecat_T=%ld, maxT=%ld\n",
-//                          itime/10, itime%10, recv_fail_cnt, ethercat_time/1000, worst_time/1000);
-//                for(i=0; i<NUMOFEPOS4_DRIVE; ++i)
-//                {
-//                    rt_printf("EPOS4_DRIVE #%i\n", i+1);
-//                    rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
-//                    rt_printf("Actual velocity = %i / %i\n" , epos4_drive_pt[i].ptInParam->VelocityActualValue
-//                            , epos4_drive_pt[i].ptOutParam->TargetPosition);
-//                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
-//                    rt_printf("\n");
-//                }
-
 
                 msg2.omega1 = epos4_drive_pt[0].ptInParam->VelocityActualValue;
                 msg2.omega2 = epos4_drive_pt[1].ptInParam->VelocityActualValue;
@@ -506,8 +455,6 @@ void pub_run(void *arg)
 
 void wheel_callback(const vehicle_control::motorsMsg& msg)
 {
-	if (wheeldes[0]!= msg.omega1) curvel[0] = epos4_drive_pt[0].ptInParam->VelocityActualValue;//gt[0] = 0;
-	if (wheeldes[1]!= msg.omega2) curvel[1] = epos4_drive_pt[1].ptInParam->VelocityActualValue;//gt[1] = 0;
     wheeldes[0] = msg.omega1;
     wheeldes[1] = msg.omega2;
     wheeldes[2] = msg.omega3;
@@ -532,8 +479,6 @@ int main(int argc, char** argv)
 
     printf("use default adapter %s\n", ecat_ifname);
     
-    c_w = 20;
-    t_w = v_lim_w/a_lim_w;
 
     cpu_set_t cpu_set_ecat;
     CPU_ZERO(&cpu_set_ecat);
