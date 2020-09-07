@@ -22,4 +22,6 @@ junction 사용, manipulator position control & wheel velocity control
 
 2020-09-07    
 Homing을 위해 servo_def.h, servo_def.c, pdo_def.h 변경
+   
+   끝날때 controlword = 6으로 변경
 
