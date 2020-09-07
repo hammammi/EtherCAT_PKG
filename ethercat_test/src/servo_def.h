@@ -27,6 +27,7 @@
 #define STATUSWORD_REMOTE_BIT 					9
 #define STATUSWORD_TARGET_REACHED_BIT 			10
 #define STATUSWORD_INTERNAL_LIMIT_ACTIVE_BIT	11
+#define STATUSWORD_HOMING_ATTAINED_BIT	12
 
 /**
  * Control CoE FSM(Finite State Machine)
@@ -64,6 +65,7 @@ typedef uint32_t UINT32;
 typedef int16_t  INT16;
 typedef uint16_t UINT16;
 typedef uint8_t UINT8;
+typedef int8_t INT8;
 
 #ifndef PI
 #define PI	(3.14159265359)

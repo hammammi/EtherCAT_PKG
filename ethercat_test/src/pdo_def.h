@@ -29,7 +29,9 @@ typedef struct PACKED
 	//INT32	PositionOffset;		//0x60B0
 	//INT32	VelocityOffset;		//0x60B1
 	//INT16	TorqueOffset;		//0x60B2
-	//UINT8	ModeOfOperation;	//0x6060
+	UINT8	ModeOfOperation;	//0x6060
+	INT32   HomePosition;       //0x30B0
+	INT8    HomingMethod;       //0x6098
 }EPOS4_DRIVE_RxPDO_t;
 
 //0x1A00 TxPDO
@@ -39,8 +41,9 @@ typedef struct PACKED
 	INT32	PositionActualValue;		//0x6064
 	INT32	VelocityActualValue;		//0x606C
 	//INT16	TorqueActualValue;			//0x6077
-	//UINT8	ModeOfOperationDisplay;		//0x6061
+	UINT8	ModeOfOperationDisplay;		//0x6061
 	UINT32	DigitalInput;				//0x60FD
+    UINT16	ErrorCode;                  //0x603F
 }EPOS4_DRIVE_TxPDO_t;
 
 
