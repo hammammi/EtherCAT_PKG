@@ -47,8 +47,8 @@ int sys_ready = 0;
 int recv_fail_cnt = 0;
 int wait = 0;
 
-int32_t homeoffset[NUMOFEPOS4_DRIVE] = {5000, 10000, 5000};  // {1000,1000,1000,1000,1000,10000,100000} // for ver1
-int homingOrder[7] = {1,2,3,4,5,6,7};
+int32_t homeoffset[NUMOFEPOS4_DRIVE] = {5000, 10000, 5000};  // {1183288, 669924, 1037652, 581632, 294912, 42352} // for ver1
+int homingOrder[7] = {2,1,3,4,5,6,7};
 
 int os;
 uint32_t ob;
@@ -187,20 +187,21 @@ boolean ecat_init(void)
                     ob = homeoffset[k]; // Home offset move distance : No PDO mapping
                     wkc_count=ec_SDOwrite(k+1, 0x30B1, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                   // os = sizeof(ob);
-                 //  ob = 0; // Home position
-                   // wkc_count=ec_SDOwrite(k+1, 0x30B0, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    os = sizeof(ob);
+                    ob = 0; // Home position
+                    wkc_count=ec_SDOwrite(k+1, 0x30B0, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
 
-                 //   os = sizeof(ob);
-                 //   ob3 = 18; // Homing method : Positive Limit switch
-                 //   wkc_count=ec_SDOwrite(k+1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
+                    os = sizeof(ob);
+                    ob3 = 18; // Homing method : Positive Limit switch
+                    wkc_count=ec_SDOwrite(k+1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
+
+                    os = sizeof(ob3);
+                    ob3 = 0; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
+                    wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
 					os = sizeof(ob3);
- //                   ob3=0; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-  //                  wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
-					os = sizeof(ob3);	
-   //                 ob3=24; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-  //                  wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
+                    ob3 = 1; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
+                    wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
 
 //                     //For Positive Limit switch method using positive limit switch w.o. errors
@@ -298,58 +299,6 @@ boolean ecat_init(void)
 
 
 
-void HomingConfig() {
-    rt_printf("Mode of operation : Homing Mode\n");
-    for (int k = 0; k < NUMOFEPOS4_DRIVE; ++k) {
-
-        epos4_drive_pt[k].ptOutParam->ModeOfOperation = OP_MODE_HOMING;
-//        rt_printf("%d\n", epos4_drive_pt[k].ptInParam->ModeOfOperationDisplay);
-		epos4_drive_pt[k].ptOutParam->HomingMethod = 18;
-
-
-        os = sizeof(ob);
-        ob = 2000; // Speed for switch search
-        wkc = ec_SDOwrite(k + 1, 0x6099, 0x01, FALSE, os, &ob, EC_TIMEOUTRXM);
-//        epos4_drive_pt[k].ptOutParam->SpeedForSwitchSearch = 3000;
-
-        os = sizeof(ob);
-        ob = 1000; // Homing acceleration
-        wkc = ec_SDOwrite(k + 1, 0x609A, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
-//        epos4_drive_pt[k].ptOutParam->HomingAccleration = 10000;
-
-
-        os = sizeof(ob);
- //       ob = homeoffset[k]; // Home offset move distance : No PDO mapping
- //       wkc = ec_SDOwrite(k + 1, 0x30B1, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
-
-        os = sizeof(ob);
-        ob = 0; // Home position
-        wkc = ec_SDOwrite(k + 1, 0x30B0, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
-
-
-        os = sizeof(ob);
-        ob3 = 18; // Homing method : Positive Limit switch
-        wkc = ec_SDOwrite(k + 1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-			os = sizeof(ob3);
-                    ob3=0; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-                    wkc=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
-					os = sizeof(ob3);	
-                    ob3=2; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-                    wkc=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-
-//                     //For Positive Limit switch method using positive limit switch w.o. errors
-//                     //Connect vcc to COM, DigIn to NO
-                    os = sizeof(ob3);
-                    ob3=1; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-                    wkc=ec_SDOwrite(k+1, 0x3142, 0x03, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-
-
-    }
-}
-
 
 void EPOS_HOMING(void *arg)
 {
@@ -406,7 +355,6 @@ void EPOS_HOMING(void *arg)
 
     i = 0;
 
-//	HomingConfig();
 
     while (run) {
         // wait for next cycle
@@ -435,30 +383,28 @@ void EPOS_HOMING(void *arg)
             max_DCtime = cur_DCtime;
 
 
-        //HomingConfig();
-
         //servo-on & homing
-        k=0;
-//        k = homingOrder[i];
+//        k=0;
+        k = homingOrder[i]-1;
         controlword = 0;
 
-		epos4_drive_pt[i].ptOutParam->ModeOfOperation = OP_MODE_HOMING;
+	//	epos4_drive_pt[i].ptOutParam->ModeOfOperation = OP_MODE_HOMING;
 
-		epos4_drive_pt[i].ptOutParam->HomingMethod = 18;
+	//	epos4_drive_pt[i].ptOutParam->HomingMethod = 18;
 		
 
-		if (ready_cnt>1000){
-        started[i] = ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
-        epos4_drive_pt[i].ptOutParam->ControlWord = controlword;}
-        rt_printf("%i Actual Position = %i / %i\n", i, epos4_drive_pt[i].ptInParam->PositionActualValue, homeoffset[i]);
+		if (ready_cnt>3000){
+        started[k] = ServoOn_GetCtrlWrd(epos4_drive_pt[k].ptInParam->StatusWord, &controlword);
+        epos4_drive_pt[k].ptOutParam->ControlWord = controlword;}
+        rt_printf("%i Actual Position = %i / %i\n", k, epos4_drive_pt[k].ptInParam->PositionActualValue, homeoffset[k]);
 
-        rt_printf("%i\n", epos4_drive_pt[i].ptOutParam->HomingMethod);
+        rt_printf("%i\n", epos4_drive_pt[k].ptOutParam->HomingMethod);
 		ready_cnt++;
 
-        if (bit_is_set(epos4_drive_pt[i].ptInParam->StatusWord,STATUSWORD_HOMING_ATTAINED_BIT))
+        if (bit_is_set(epos4_drive_pt[k].ptInParam->StatusWord,STATUSWORD_HOMING_ATTAINED_BIT))
         {
-            rt_printf("Epos %i's homing is completed",i);
-            rt_printf("StatusWord = 0x%X",epos4_drive_pt[i].ptInParam->StatusWord);
+            rt_printf("Epos %i's homing is completed",k);
+            rt_printf("StatusWord = 0x%X",epos4_drive_pt[k].ptInParam->StatusWord);
             i++;
 			ready_cnt=0;
         }
@@ -487,7 +433,7 @@ void EPOS_HOMING(void *arg)
     //Servo OFF
     for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
     {
-        epos4_drive_pt[i].ptOutParam->ControlWord=6; //Servo OFF (shutdown, transition#2,6,8)
+        epos4_drive_pt[i].ptOutParam->ControlWord=6; //Servo OFF (Disable voltage, transition#9)
     }
     ec_send_processdata();
     wkc = ec_receive_processdata(EC_TIMEOUTRET);
