@@ -21,7 +21,7 @@ rostopic pub 사용할 시 /move_base_simple 사용, qx 0 qy 0 qz 0 qw 1
 junction 사용, manipulator position control & wheel velocity control
 
 2020-09-07    
-Homing을 위해 servo_def.h, servo_def.c, pdo_def.h 변경
+Homing을 위해 servo_def.h, pdo_def.h 변경
    
    끝날때 controlword = 6으로 변경
 
