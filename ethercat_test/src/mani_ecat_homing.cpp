@@ -39,7 +39,7 @@ RT_TASK motion_task;
 RTIME now, previous;
 long ethercat_time_send, ethercat_time_read = 0;
 long ethercat_time = 0, worst_time = 0;
-char ecat_ifname[32] = "enp2s0";
+char ecat_ifname[32] = "eno1";
 int run = 1;
 int sys_ready = 0;
 
@@ -47,7 +47,8 @@ int sys_ready = 0;
 int recv_fail_cnt = 0;
 int wait = 0;
 
-int32_t homeoffset[NUMOFEPOS4_DRIVE] = {5000, 10000, 5000};  // {1183288, 669924, 1037652, 581632, 294912, 42352} // for ver1
+int32_t homeoffset[NUMOFEPOS4_DRIVE] = {290000,160000,250000};//,140000, 90000, 70000, 40000};
+// {1183288, 669924, 1037652, 581632, 385032, 294912, 42352} // for ver1
 int homingOrder[7] = {2,1,3,4,5,6,7};
 
 int os;
@@ -93,17 +94,14 @@ boolean ecat_init(void)
                     // 3. VelocityActualValue INT32
                     os=sizeof(ob); ob = 0x606C0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 4. ModeOfOperationDisplay UINT8
-                    os=sizeof(ob); ob = 0x60610008;
-                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x04, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 5. DigitalInput UINT32
+                    // 4. DigitalInput UINT32
                     os=sizeof(ob); ob = 0x60FD0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 6. ErrorCode UINT16
+                    // 5. ErrorCode UINT16
                     os=sizeof(ob); ob = 0x603F0010;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x06, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 0x06;
+                    os=sizeof(ob3); ob3 = 0x05;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
                     if (wkc_count==0)
@@ -130,17 +128,11 @@ boolean ecat_init(void)
                     // 3. TargetVelocity INT32
                     os=sizeof(ob); ob = 0x60FF0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 4. ModeOfOperation UINT8
-                    os=sizeof(ob); ob = 0x60600008;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x04, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 5. HomePosition INT32
-                    os=sizeof(ob); ob = 0x30B00020;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 6. HomingMethod INT8
+                    // 4. HomingMethod INT8
                     os=sizeof(ob); ob = 0x60980008;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x06, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 0x06;
+                    os=sizeof(ob3); ob3 = 0x04;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
                     if (wkc_count==0)
@@ -175,46 +167,41 @@ boolean ecat_init(void)
                     os=sizeof(ob); ob = 0x000186A0; // Following error window
                     wkc_count=ec_SDOwrite(k+1, 0x6065, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os = sizeof(ob);
-                    ob = 1000; // Speed for switch search
+                    os = sizeof(ob); ob = 2000; // Speed for switch search -> less than max speed (0x3000, you can see the value using epos studio)
                     wkc_count=ec_SDOwrite(k+1, 0x6099, 0x01, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os = sizeof(ob);
-                    ob = 1000; // Homing acceleration
+                    os = sizeof(ob); ob = 1000; // Homing acceleration
                     wkc_count=ec_SDOwrite(k+1, 0x609A, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os = sizeof(ob);
-                    ob = homeoffset[k]; // Home offset move distance : No PDO mapping
+                    os = sizeof(ob); ob = homeoffset[k]; // Home offset move distance : No PDO mapping
                     wkc_count=ec_SDOwrite(k+1, 0x30B1, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os = sizeof(ob);
-                    ob = 0; // Home position
+                    os = sizeof(ob); ob = 0; // Home position
                     wkc_count=ec_SDOwrite(k+1, 0x30B0, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-
-                    os = sizeof(ob);
-                    ob3 = 18; // Homing method : Positive Limit switch
+                    os = sizeof(ob3); ob3 = 18; // Homing method : Positive Limit switch
                     wkc_count=ec_SDOwrite(k+1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
+                    //For Positive Limit switch method using positive limit switch, connect vcc to COM, DigIn to NO
+		    // negative 0 positive 1 homeswitch 2,  each function can only be mapped once, so default value is important.
+
+		    //os = sizeof(ob3);
+                    //ob3 = 20; 
+                    //wkc_count=ec_SDOwrite(k+1, 0x3142, 0x03, FALSE, os, &ob3, EC_TIMEOUTRXM);
+
+                    //os = sizeof(ob3);
+                    //ob3 = 2; 
+                    //wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     os = sizeof(ob3);
-                    ob3 = 0; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-                    wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
-					os = sizeof(ob3);
-                    ob3 = 1; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
+                    ob3 = 20; 
                     wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
-
-//                     //For Positive Limit switch method using positive limit switch w.o. errors
-//                     //Connect vcc to COM, DigIn to NO
-    //                os = sizeof(ob3);
-   //                 ob3=1; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-       //             wkc_count=ec_SDOwrite(k+1, 0x3142, 0x03, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-				
+                    os = sizeof(ob3);
+                    ob3 = 1; 
+                    wkc_count=ec_SDOwrite(k+1, 0x3142, 0x03, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
                 }
             }
-
 
             ec_config_map(&IOmap);
             /* Configurate distributed clock */
@@ -304,7 +291,7 @@ void EPOS_HOMING(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
-    int i, k, set;
+    int i, j, k, set;
 
     if (ecat_init()==FALSE)
     {
@@ -382,39 +369,39 @@ void EPOS_HOMING(void *arg)
         if (cur_DCtime > max_DCtime)
             max_DCtime = cur_DCtime;
 
-
+	    
         //servo-on & homing
 //        k=0;
-        k = homingOrder[i]-1;
+//        k = homingOrder[i]-1;
+        k = i;
         controlword = 0;
 
-	//	epos4_drive_pt[i].ptOutParam->ModeOfOperation = OP_MODE_HOMING;
+        for (j = 0; j < NUMOFEPOS4_DRIVE; ++j) {
+			controlword = 0;
+            started[j] = ServoOn_GetCtrlWrd(epos4_drive_pt[j].ptInParam->StatusWord, &controlword);
+            epos4_drive_pt[j].ptOutParam->ControlWord = controlword;
+        }
 
-	//	epos4_drive_pt[i].ptOutParam->HomingMethod = 18;
-		
-
-		if (ready_cnt>3000){
-        started[k] = ServoOn_GetCtrlWrd(epos4_drive_pt[k].ptInParam->StatusWord, &controlword);
-        epos4_drive_pt[k].ptOutParam->ControlWord = controlword;}
-        rt_printf("%i Actual Position = %i / %i\n", k, epos4_drive_pt[k].ptInParam->PositionActualValue, homeoffset[k]);
-
-        rt_printf("%i\n", epos4_drive_pt[k].ptOutParam->HomingMethod);
+		if (ready_cnt>=2000){
+            controlword = 0x1F;
+            epos4_drive_pt[k].ptOutParam->ControlWord = controlword;
+		}
+        
+		rt_printf("%i Actual Position = %i / %i\n", k, epos4_drive_pt[k].ptInParam->PositionActualValue, homeoffset[k]);
+		rt_printf("%i\n", epos4_drive_pt[k].ptOutParam->HomingMethod);
+        
 		ready_cnt++;
 
         if (bit_is_set(epos4_drive_pt[k].ptInParam->StatusWord,STATUSWORD_HOMING_ATTAINED_BIT))
         {
             rt_printf("Epos %i's homing is completed",k);
-            rt_printf("StatusWord = 0x%X",epos4_drive_pt[k].ptInParam->StatusWord);
+//            rt_printf("StatusWord = 0x%X\n",epos4_drive_pt[k].ptInParam->StatusWord);
             i++;
-			ready_cnt=0;
+            ready_cnt=0;
         }
-//        if (set == 1){
-//            rt_printf("!!");
-//            i += 1;
-//            set = 0;
-//        }
 
-		
+
+
         if (i == NUMOFEPOS4_DRIVE) //all servos are attained homing
         {
             run = 0;
@@ -458,31 +445,6 @@ void EPOS_HOMING(void *arg)
 
 }
 
-//void pub_run(void *arg)
-//{
-//    int i;
-//    unsigned long itime = 0;
-//    long stick = 0;
-//
-//    while (run)
-//    {
-//        rt_task_wait_period(NULL);
-//        if (inOP==TRUE)
-//        {
-//            if (!sys_ready)
-//            {
-//                if(stick==0)
-//                    rt_printf("waiting for system ready...\n");
-//                if(stick%10==0)
-//                    rt_printf("%i \n", stick/10);
-//                stick++;
-//            }
-//
-//        }
-//    }
-//}
-
-
 void catch_signal(int sig)
 {
     run = 0;
@@ -508,22 +470,10 @@ int main(int argc, char** argv)
     CPU_ZERO(&cpu_set_ecat);
     CPU_SET(0, &cpu_set_ecat); //assign CPU#0 for ethercat task
 
-//    cpu_set_t cpu_set_pub;
-//    CPU_ZERO(&cpu_set_pub);
-//    CPU_SET(1, &cpu_set_pub); //assign CPU#2 (or any) for main task
-
-
-
-    rt_task_create(&motion_task, "SOEM_motion_task", 0, 94, 0 );
+    rt_task_create(&motion_task, "SOEM_motion_task", 0, 97, 0 );
     rt_task_set_affinity(&motion_task, &cpu_set_ecat); //CPU affinity for ethercat task
 
-//    rt_task_create(&pub_task, "pos_pub_task", 0, 50, 0 );
-//    rt_task_set_affinity(&pub_task, &cpu_set_pub); //CPU affinity for printing task
-
-
     rt_task_start(&motion_task, &EPOS_HOMING, NULL);
-//    rt_task_start(&pub_task, &pub_run, NULL);
-
 
     while (run)
     {
