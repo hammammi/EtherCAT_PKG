@@ -32,8 +32,8 @@ ethtool parameter persist 변경 방법
 $ cd /etc/NetworkManager/dispatcher.d   
 $ sudo nano 20-ethtool   
 
-   #!/bin/bash   
-   /sbin/ethtool -C eno1 rx-usecs 0    
+   #!/bin/bash
+   /sbin/ethtool -C eno1 rx-usecs 0
 
 $ sudo chmod +x 20-ethtool    
 $ reboot   
