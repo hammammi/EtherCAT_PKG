@@ -21,7 +21,7 @@
 #include "ecat_dc.h"
 
 #define EC_TIMEOUTMON 500
-#define NUMOFEPOS4_DRIVE	6
+#define NUMOFEPOS4_DRIVE	7
 #define NSEC_PER_SEC 1000000000
 unsigned int cycle_ns = 1000000;
 
@@ -51,11 +51,11 @@ int sys_ready = 0;
 int recv_fail_cnt = 0;
 int wait = 0;
 
-int32_t homeoffset[] = {672924,1057652,581632, 335032, 250000, 265000};
+int32_t homeoffset[] = {1183288,672924,1057652,581632, 335032, 250000, 265000};
 // {1183288, 669924, 1037652, 581632, 385032, 294912, 42352} // for ver1
-//1200000,
-int first_step[] = {1,3,5};//{0,2,4,6}; //vertical axis
-int second_step[] = {0,2,4};//{1,3,5};  //horizontal axis
+
+int first_step[] = {0,2,4,6}; //vertical axis
+int second_step[] = {1,3,5};  //horizontal axis
 
 int os;
 uint32_t ob;
@@ -192,7 +192,7 @@ boolean ecat_init(void)
                     wkc_count=ec_SDOwrite(k+1, 0x6065, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
 
-                    if (k == 4){
+                    if (k == 5){
                         os = sizeof(ob3);
                         ob3 = 17; // Homing method : Negative Limit switch
                         wkc_count=ec_SDOwrite(k+1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
