@@ -1,3 +1,7 @@
+//
+// Created by Hyam on 2020-09-17.
+//
+
 #include <ros/ros.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,7 +26,7 @@
 unsigned int cycle_ns = 1000000;
 
 EPOS4_Drive_pt	epos4_drive_pt[NUMOFEPOS4_DRIVE];
-int started[NUMOFEPOS4_DRIVE]={0}, ServoState=0;
+int started[NUMOFEPOS4_DRIVE]={0}, HomingState=0;
 uint8 servo_ready = 0, servo_prestate = 0;
 
 char IOmap[4096];
@@ -40,16 +44,18 @@ RTIME now, previous;
 long ethercat_time_send, ethercat_time_read = 0;
 long ethercat_time = 0, worst_time = 0;
 char ecat_ifname[32] = "eno1";
-int run = 1;
+int step = 0, run = 1;
 int sys_ready = 0;
 
 
 int recv_fail_cnt = 0;
 int wait = 0;
 
-int32_t homeoffset[7] = {1200000,160000,1100000,550000, 350000, 250000, 40000};
+int32_t homeoffset[] = {672924,1057652,581632, 335032, 250000, 265000};
 // {1183288, 669924, 1037652, 581632, 385032, 294912, 42352} // for ver1
-int homingOrder[7] = {2,1,3,4,5,6,7};
+//1200000,
+int first_step[] = {1,3,5};//{0,2,4,6}; //vertical axis
+int second_step[] = {0,2,4};//{1,3,5};  //horizontal axis
 
 int os;
 uint32_t ob;
@@ -62,7 +68,7 @@ boolean ecat_init(void)
     needlf = FALSE;
     inOP = FALSE;
 
-    rt_printf("Strating DC test\n");
+    rt_printf("Starting DC test\n");
     if (ec_init(ecat_ifname))
     {
         rt_printf("ec_init on %s succeeded. \n", ecat_ifname);
@@ -72,7 +78,7 @@ boolean ecat_init(void)
         {
             rt_printf("%d slaves found and configured.\n", ec_slavecount);
 
-            for (int k=0; k<NUMOFEPOS4_DRIVE; ++k)
+            for (int k=0; k<(NUMOFEPOS4_DRIVE); ++k)
             {
                 if (( ec_slavecount >= 1 ) && (strcmp(ec_slave[k+1].name,"EPOS4") == 0)) //change name for other drives
                 {
@@ -94,17 +100,14 @@ boolean ecat_init(void)
                     // 3. VelocityActualValue INT32
                     os=sizeof(ob); ob = 0x606C0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 4. ModeOfOperationDisplay UINT8
-                    os=sizeof(ob); ob = 0x60610008;
+                    // 4. DigitalInput(LogicState) UINT16
+                    os=sizeof(ob); ob = 0x31410110;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x04, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 5. DigitalInput UINT32
-                    os=sizeof(ob); ob = 0x60FD0020;
-                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 6. ErrorCode UINT16
+                    // 5. ErrorCode UINT16
                     os=sizeof(ob); ob = 0x603F0010;
-                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x06, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 0x06;
+                    os=sizeof(ob3); ob3 = 0x05;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
                     if (wkc_count==0)
@@ -131,17 +134,9 @@ boolean ecat_init(void)
                     // 3. TargetVelocity INT32
                     os=sizeof(ob); ob = 0x60FF0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 4. ModeOfOperation UINT8
-                    os=sizeof(ob); ob = 0x60600008;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x04, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 5. HomePosition INT32
-                    os=sizeof(ob); ob = 0x30B00020;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 6. HomingMethod INT8
-                    os=sizeof(ob); ob = 0x60980008;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x06, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    
 
-                    os=sizeof(ob3); ob3 = 0x06;
+                    os=sizeof(ob3); ob3 = 0x03;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
                     if (wkc_count==0)
@@ -176,8 +171,8 @@ boolean ecat_init(void)
                     //os=sizeof(ob); ob = 0x000186A0; // Following error window
                     //wkc_count=ec_SDOwrite(k+1, 0x6065, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-		os = sizeof(ob);  ob = homeoffset[k]; // Home offset move distance : No PDO mapping
-		ob = 550000;
+                    os = sizeof(ob);  ob = homeoffset[k]; // Home offset move distance : No PDO mapping
+                    //ob = 120000;
                     wkc_count=ec_SDOwrite(k+1, 0x30B1, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
                     os = sizeof(ob);
@@ -188,40 +183,62 @@ boolean ecat_init(void)
                     ob = 1000; // Homing acceleration
                     wkc_count=ec_SDOwrite(k+1, 0x609A, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    
 
                     os = sizeof(ob);
                     ob = 0; // Home position
                     wkc_count=ec_SDOwrite(k+1, 0x30B0, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-
-                    os = sizeof(ob3);
-                    ob3 = 18; // Homing method : Positive Limit switch
-                    wkc_count=ec_SDOwrite(k+1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-                    //For Positive Limit switch method using positive limit switch
-                    //Connect vcc to COM, DigIn to NO
-					// negative 0 positive 1 homeswitch 2
-					// each function can only be mapped once, so default value is important.
-
-                    os = sizeof(ob3);
-                    ob3 = 20; 
-                    wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-                    os = sizeof(ob3);
-                    ob3 = 1; 
-                    wkc_count=ec_SDOwrite(k+1, 0x3142, 0x04, FALSE, os, &ob3, EC_TIMEOUTRXM);
-                    //os = sizeof(ob3);
-                    //ob3 = 20; 
-                    //wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-                    //os = sizeof(ob3);
-                    //ob3 = 2; 
-                    //wkc_count=ec_SDOwrite(k+1, 0x3142, 0x03, FALSE, os, &ob3, EC_TIMEOUTRXM);
+                    os=sizeof(ob); ob = 0x05F5E100; // Following error window
+                    wkc_count=ec_SDOwrite(k+1, 0x6065, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
 
+                    if (k == 4){
+                        os = sizeof(ob3);
+                        ob3 = 17; // Homing method : Negative Limit switch
+                        wkc_count=ec_SDOwrite(k+1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
+                        //For Negative Limit switch method using negative limit switch
+                        //Connect vcc to COM, DigIn to NO
+                        // negative 0 positive 1 homeswitch 2
+                        // each function can only be mapped once, so default value is important.
+
+                        os = sizeof(ob3);
+                        ob3 = 20;
+                        wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
+
+                        os = sizeof(ob3);
+                        ob3 = 0;
+                        wkc_count=ec_SDOwrite(k+1, 0x3142, 0x04, FALSE, os, &ob3, EC_TIMEOUTRXM);
+                    }
+                    else{
+                        os = sizeof(ob3);
+                        ob3 = 18; // Homing method : Positive Limit switch
+                        wkc_count=ec_SDOwrite(k+1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
+
+                        //For Positive Limit switch method using positive limit switch
+                        //Connect vcc to COM, DigIn to NO
+                        // negative 0 positive 1 homeswitch 2
+                        // each function can only be mapped once, so default value is important.
+
+                        os = sizeof(ob3);
+                        ob3 = 20;
+                        wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
+
+                        os = sizeof(ob3);
+                        ob3 = 1;
+                        wkc_count=ec_SDOwrite(k+1, 0x3142, 0x04, FALSE, os, &ob3, EC_TIMEOUTRXM);
+                        //os = sizeof(ob3);
+                        //ob3 = 20;
+                        //wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
+
+                        //os = sizeof(ob3);
+                        //ob3 = 2;
+                        //wkc_count=ec_SDOwrite(k+1, 0x3142, 0x03, FALSE, os, &ob3, EC_TIMEOUTRXM);
+
+                    }
                 }
+       
+                        
             }
 
 
@@ -313,7 +330,7 @@ void EPOS_HOMING(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
-    int i, j, k, set;
+    int i, j, k, p;
 
     if (ecat_init()==FALSE)
     {
@@ -395,7 +412,7 @@ void EPOS_HOMING(void *arg)
         //servo-on & homing
 //        k=0;
 //        k = homingOrder[i]-1;
-        k = 2;
+        //k = i;
         controlword = 0;
 
 
@@ -409,31 +426,54 @@ void EPOS_HOMING(void *arg)
             started[j] = ServoOn_GetCtrlWrd(epos4_drive_pt[j].ptInParam->StatusWord, &controlword);
             epos4_drive_pt[j].ptOutParam->ControlWord = controlword;
         }
-
-        //	if (ready_cnt<3000){
-        //	controlword = 0x06;
-        //	epos4_drive_pt[k].ptOutParam->ControlWord = controlword;}
+        ready_cnt++;
+        
         if (ready_cnt>=3000){
             controlword = 0x1F;
-            //started[k] = ServoOn_GetCtrlWrd(epos4_drive_pt[k].ptInParam->StatusWord, &controlword);
-            epos4_drive_pt[k].ptOutParam->ControlWord = controlword;}
-        rt_printf("%i Actual Position = %i / %i\n", k, epos4_drive_pt[k].ptInParam->PositionActualValue, homeoffset[k]);
-
-        rt_printf("%i\n", epos4_drive_pt[k].ptOutParam->HomingMethod);
-        ready_cnt++;
-
-        if (bit_is_set(epos4_drive_pt[k].ptInParam->StatusWord,STATUSWORD_HOMING_ATTAINED_BIT))
-        {
-            rt_printf("Epos %i's homing is completed",k);
-            rt_printf("StatusWord = 0x%X",epos4_drive_pt[k].ptInParam->StatusWord);
-            i++;
-            ready_cnt=0;
-//run = 0;
+            if (step == 0){
+                p = sizeof(first_step)/sizeof(first_step[0]);
+                for (k=0;k<p;k++){
+                    epos4_drive_pt[first_step[k]].ptOutParam->ControlWord = controlword;
+                    rt_printf("%i Actual Position = %i / %i\n", first_step[k], epos4_drive_pt[first_step[k]].ptInParam->PositionActualValue, homeoffset[first_step[k]]);
+                    if (bit_is_set(epos4_drive_pt[first_step[k]].ptInParam->StatusWord,STATUSWORD_HOMING_ATTAINED_BIT))
+                    {
+                        rt_printf("Epos %i's homing is completed",first_step[k]);
+                        rt_printf("StatusWord = 0x%X",epos4_drive_pt[first_step[k]].ptInParam->StatusWord);
+                        HomingState |= (1<<k);
+                    }
+                    rt_printf("\n%i\n",((1<<p)-1));
+                    rt_printf("\n%i\n",HomingState);
+                    if (HomingState == ((1<<p)-1))
+                    {
+                        step=1;
+                        ready_cnt=0;
+                        HomingState = 0;
+                    }
+                }
+            }
+            else{
+                p = sizeof(second_step)/sizeof(second_step[0]);
+                for (k=0;k<p;k++){
+                    epos4_drive_pt[second_step[k]].ptOutParam->ControlWord = controlword;
+                    rt_printf("%i Actual Position = %i / %i\n", second_step[k], epos4_drive_pt[second_step[k]].ptInParam->PositionActualValue, homeoffset[second_step[k]]);
+                    if (bit_is_set(epos4_drive_pt[second_step[k]].ptInParam->StatusWord,STATUSWORD_HOMING_ATTAINED_BIT))
+                    {
+                        rt_printf("Epos %i's homing is completed",second_step[k]);
+                        rt_printf("StatusWord = 0x%X",epos4_drive_pt[second_step[k]].ptInParam->StatusWord);
+                        HomingState |= (1<<k);
+                    }
+                    rt_printf("\n%i\n",((1<<p)-1));
+                    rt_printf("\n%i\n",HomingState);
+                    if (HomingState == ((1<<p)-1))
+                    {
+                        step=2;
+                        ready_cnt=0;
+                    }
+                }
+            }
         }
 
-
-
-        if (i == NUMOFEPOS4_DRIVE) //all servos are attained homing
+        if (step == 2) //all servos are attained homing
         {
             run = 0;
         }
