@@ -101,8 +101,8 @@ boolean ecat_init(void)
                     os=sizeof(ob); ob = 0x606C0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
                     // 4. DigitalInput(LogicState) UINT16
-                    os=sizeof(ob); ob = 0x31410110;
-                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x04, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    os=sizeof(ob); ob = 0x60FD0020; // Digital Inputs
+                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
                     // 5. ErrorCode UINT16
                     os=sizeof(ob); ob = 0x603F0010;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
