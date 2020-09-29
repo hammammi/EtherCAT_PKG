@@ -39,7 +39,7 @@ typedef struct PACKED
 	INT32	PositionActualValue;		//0x6064
 	INT32	VelocityActualValue;		//0x606C
 	//INT16	TorqueActualValue;			//0x6077
-	UINT32	DigitalInput;				//0x60FD -> 3141
+	UINT16	DigitalInput;				//0x60FD
         UINT16	ErrorCode;                  //0x603F
 }EPOS4_DRIVE_TxPDO_t;
 
