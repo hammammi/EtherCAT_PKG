@@ -38,7 +38,7 @@ $ sudo nano 20-ethtool
 $ sudo chmod +x 20-ethtool    
 $ reboot   
    
-적용 후 len port를 찾지 못하는 경우   
+적용 후 lan port를 찾지 못하는 경우   
    
 $ sudo nano /etc/netplan/*.ymal   
    
