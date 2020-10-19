@@ -629,7 +629,7 @@ void pub_run(void *arg)
     int argc;
     char** argv;
     ethercat_test::pos msg;
-    vehicle_control::motorsMsg msg2;
+    ethercat_test::vel msg2;
 
     ros::init(argc, argv, "dualarm_pub");
 
@@ -738,7 +738,7 @@ void motion_callback(const ethercat_test::pos& msg)
 //		ROS_INFO("%d",targetpos[0]);
 //}
 
-void wheel_callback(const vel& msg)
+void wheel_callback(const ethercat_test::vel& msg)
 {
     for(int i = 0; i < NUMOFWHEEL_DRIVE;++i)
         wheeldes[i] = msg.velocity[i];
