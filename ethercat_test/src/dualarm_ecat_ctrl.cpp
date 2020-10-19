@@ -779,7 +779,7 @@ int main(int argc, char** argv)
     rt_task_set_affinity(&motion_task, &cpu_set_ecat); //CPU affinity for ethercat task
 
     rt_task_create(&print_task, "ec_printing", 0, 50, 0 );
-    rt_task_set_affinity(&print_task, &cpu_set_pub); //CPU affinity for printing task
+    rt_task_set_affinity(&pub_task, &cpu_set_pub); //CPU affinity for printing task
 
     rt_task_start(&motion_task, &EPOS_OP, NULL);
     rt_task_start(&pub_task, &pub_run, NULL);
