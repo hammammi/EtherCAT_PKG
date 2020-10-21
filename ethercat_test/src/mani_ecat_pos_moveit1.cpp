@@ -628,7 +628,7 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "mani_sub");
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe("pos_des", 1, motion_callback);
+    ros::Subscriber sub = n.subscribe("ourarm/robotic_arm_controller/follow_joint_trajectory/goal", 1, motion_callback);
 
     rt_task_create(&motion_task, "SOEM_motion_task", 0, 95, 0 );
     rt_task_set_affinity(&motion_task, &cpu_set_ecat); //CPU affinity for ethercat task
