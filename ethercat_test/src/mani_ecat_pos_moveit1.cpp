@@ -585,7 +585,7 @@ void motion_callback(const ethercat_test::trajectory::ConstPtr& msg)
 
     for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
     {
-        pos_desired_rad[j] = msg->traj[i];
+        pos_desired_rad[i] = msg->traj[i];
         //traj[i+9]??
         pos_desired[i] = pos_desired_rad[i]*2*pulse_rev[i]*gear_ratio[i]/M_PI;
         desinc[i] = pos_desired[i] + homepos[i];
