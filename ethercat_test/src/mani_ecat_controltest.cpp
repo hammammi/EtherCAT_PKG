@@ -17,7 +17,7 @@
 #include "ecat_dc.h"
 
 #define EC_TIMEOUTMON 500
-#define NUMOFEPOS4_DRIVE	1
+#define NUMOFEPOS4_DRIVE	3
 #define NSEC_PER_SEC 1000000000
 unsigned int cycle_ns = 1000000;
 
@@ -40,7 +40,7 @@ RT_TASK pub_task;
 RTIME now, previous;
 long ethercat_time_send, ethercat_time_read = 0;
 long ethercat_time = 0, worst_time = 0;
-char ecat_ifname[32] = "enp2s0";
+char ecat_ifname[32] = "eno1";
 int run = 1;
 int sys_ready = 0;
 boolean limit_flag = FALSE;
@@ -55,8 +55,8 @@ int32_t zeropos[NUMOFEPOS4_DRIVE] = {0};  // for ver1
 int32_t targetpos[NUMOFEPOS4_DRIVE] = {0};
 int32_t desinc[NUMOFEPOS4_DRIVE] = {0};
 
-double velprofile[NUMOFEPOS4_DRIVE] = {2};
-double accprofile[NUMOFEPOS4_DRIVE] = {100};
+double velprofile[NUMOFEPOS4_DRIVE] = {2,2,2};
+double accprofile[NUMOFEPOS4_DRIVE] = {100,100,100};
 double c_1[NUMOFEPOS4_DRIVE] = {0};
 int t1[NUMOFEPOS4_DRIVE] = {0};
 int t2[NUMOFEPOS4_DRIVE] = {0};
@@ -108,17 +108,14 @@ boolean ecat_init(uint32_t mode)
                     // 3. VelocityActualValue INT32
                     os=sizeof(ob); ob = 0x606C0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 4. ModeOfOperationDisplay UINT8
-                    os=sizeof(ob); ob = 0x60610008;
+                    // 4. DigitalInput(LogicState) UINT16
+                    os=sizeof(ob); ob = 0x31410110;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x04, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 5. DigitalInput UINT32
-                    os=sizeof(ob); ob = 0x60FD0020;
-                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 6. ErrorCode UINT16
+                    // 5. ErrorCode UINT16
                     os=sizeof(ob); ob = 0x603F0010;
-                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x06, FALSE, os, &ob, EC_TIMEOUTRXM);
+                    wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 0x06;
+                    os=sizeof(ob3); ob3 = 0x05;
                     wkc_count=ec_SDOwrite(k+1, 0x1A00, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
                     if (wkc_count==0)
@@ -145,19 +142,10 @@ boolean ecat_init(uint32_t mode)
                     // 3. TargetVelocity INT32
                     os=sizeof(ob); ob = 0x60FF0020;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x03, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 4. ModeOfOperation UINT8
-                    os=sizeof(ob); ob = 0x60600008;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x04, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 5. HomePosition INT32
-                    os=sizeof(ob); ob = 0x30B00020;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x05, FALSE, os, &ob, EC_TIMEOUTRXM);
-                    // 6. HomingMethod INT8
-                    os=sizeof(ob); ob = 0x60980008;
-                    wkc_count=ec_SDOwrite(k+1, 0x1600, 0x06, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 0x06;
+
+                    os=sizeof(ob3); ob3 = 0x03;
                     wkc_count=ec_SDOwrite(k+1, 0x1600, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
                     if (wkc_count==0)
                     {
                         rt_printf("RxPDO assignment error\n");
@@ -287,77 +275,6 @@ boolean ecat_init(uint32_t mode)
     return inOP;
 }
 
-void HomingConfig(void)
-{
-    rt_printf("Mode of operation : Homing Mode\n");
-    for (int k=0; k<NUMOFEPOS4_DRIVE; ++k) {
-
-//        epos4_drive_pt[k].ptOutParam->ModeOfOperation = 8;
-        epos4_drive_pt[k].ptOutParam->ModeOfOperation = OP_MODE_HOMING;
-//                    epos4_drive_pt[k].ptOutParam->ControlWord=0x0006;
-//                    rt_printf("Controlword = 0x%x\n", epos4_drive_pt[i].ptOutParam->ControlWord);
-//                    epos4_drive_pt[k].ptOutParam->ControlWord=0x000F;
-//                    rt_printf("Controlword = 0x%x\n", epos4_drive_pt[i].ptOutParam->ControlWord);
-        epos4_drive_pt[k].ptOutParam->ControlWord = 0x001F;
-        rt_printf("Controlword = 0x%x\n", epos4_drive_pt[k].ptInParam->StatusWord);
-        rt_printf("%d\n", epos4_drive_pt[k].ptInParam->ModeOfOperationDisplay);
-//        started[k] = ServoOn_GetCtrlWrd(epos4_drive_pt[k].ptInParam->StatusWord, &controlword);
-//        epos4_drive_pt[i].ptOutParam->ControlWord = controlword;
-        epos4_drive_pt[k].ptOutParam->ControlWord = 0x000F;
-//        rt_printf("Controlword = 0x%x\n", epos4_drive_pt[k].ptOutParam->ControlWord);
-
-        os = sizeof(ob);
-        ob = 100; // Speed for switch search
-        wkc = ec_SDOwrite(k + 1, 0x6099, 0x01, FALSE, os, &ob, EC_TIMEOUTRXM);
-//        epos4_drive_pt[k].ptOutParam->SpeedForSwitchSearch = 3000;
-
-        os = sizeof(ob);
-        ob = 1000; // Homing acceleration
-        wkc = ec_SDOwrite(k + 1, 0x609A, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
-//        epos4_drive_pt[k].ptOutParam->HomingAccleration = 10000;
-
-        os = sizeof(ob);
-        ob = 5000; // Home offset move distance : No PDO mapping
-        wkc = ec_SDOwrite(k + 1, 0x30B1, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
-
-        os = sizeof(ob);
-        ob = 0; // Home position
-        wkc = ec_SDOwrite(k + 1, 0x30B0, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
-        epos4_drive_pt[k].ptOutParam->HomePosition = 0;
-
-        os = sizeof(ob);
-        ob3 = 18; // Homing method : Positive Limit switch
-        wkc = ec_SDOwrite(k + 1, 0x6098, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-        epos4_drive_pt[k].ptOutParam->HomingMethod = 18;
-
-        // For Positive Limit switch method using positive limit switch w.o. errors
-        // Connect vcc to COM, DigIn to NO
-        os = sizeof(ob3);
-        ob3 = 25; // Digital input 2 configuration  positive 1 or 25 : No PDO mapping
-        wkc = ec_SDOwrite(k + 1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-
-//        os=sizeof(ob3); ob3 = 28; // Digital input 1 configuration quick stop
-//        wkc=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
-
-
-    }
-
-//            }
-//            else {
-
-//                for (int k=0; k<NUMOFEPOS4_DRIVE; ++k)
-//                {
-//                    epos4_drive_pt[k].ptOutParam->ModeOfOperation=OP_MODE_CYCLIC_SYNC_POSITION;
-//                    epos4_drive_pt[k].ptOutParam->ControlWord=0x0006;
-//                    rt_printf("Controlword = 0x%x\n", epos4_drive_pt[i].ptOutParam->ControlWord);
-//                    epos4_drive_pt[k].ptOutParam->ControlWord=0x000F;
-//                    rt_printf("Controlword = 0x%x\n", epos4_drive_pt[i].ptOutParam->ControlWord);
-//                    rt_printf("%d\n",epos4_drive_pt[k].ptInParam->ModeOfOperationDisplay);
-//                }
-//
-}
-
 void EPOS_CSP(void *arg)
 {
     unsigned long ready_cnt = 0, pos_cnt = 0;
@@ -409,17 +326,9 @@ void EPOS_CSP(void *arg)
 
     rt_task_sleep_until(rt_ts); // wait until next REF clock
 
-    rt_printf("%d\n",epos4_drive_pt[0].ptInParam->ModeOfOperationDisplay);
-    rt_printf("%d\n",epos4_drive_pt[0].ptOutParam->HomingMethod);
-    rt_printf("----------------------------------------\n");
+ 
 
-    HomingConfig();
-
-    rt_printf("%d\n",epos4_drive_pt[0].ptInParam->ModeOfOperationDisplay);
-    rt_printf("%d\n",epos4_drive_pt[0].ptOutParam->HomingMethod);
-    rt_printf("----------------------------------------\n");
-
-
+ 
     while (run) {
         // wait for next cycle
         rt_ts += (RTIME)(cycle_ns + toff);
@@ -454,37 +363,8 @@ void EPOS_CSP(void *arg)
 
             started[i] = ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
             epos4_drive_pt[i].ptOutParam->ControlWord = controlword;
-//            if (bit_is_set(epos4_drive_pt[i].ptInParam->StatusWord,STATUSWORD_HOMIMING_ATTAINED_BIT))
-//            {
-////                epos4_drive_pt[i].ptOutParam->ModeOfOperation = 0x08;
-//                epos4_drive_pt[i].ptOutParam->ControlWord = 0x06;
-//                os=sizeof(ob3); ob3 = 0x08;  // mode of operation 0x06 -> homing mode
-//                wkc=ec_SDOwrite(i+1, 0x6060, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
-//                rt_printf("%d\n", change_mode);
-//
-//
-//
-//            }
-//            if (bit_is_set(epos4_drive_pt[i].ptInParam->StatusWord,STATUSWORD_HOMIMING_ATTAINED_BIT))
-//            {
-//                epos4_drive_pt[i].ptInParam->StatusWord ^= 0b0001000000000000;
-//
-//            ready_cnt = 0;
-//            sys_ready = 0;
-//                epos4_drive_pt[i].ptOutParam->ModeOfOperation = 8;
-//                epos4_drive_pt[i].ptOutParam->ControlWord = 0x06;
-//
-//            }
-//            rt_printf("%d\n", change_mode);
-            if (change_mode==1 &&pos_cnt<=1000)
-            {   epos4_drive_pt[i].ptOutParam->ModeOfOperation = 8;
-                epos4_drive_pt[i].ptOutParam->ControlWord = 0x06;
-                pos_cnt++;
-//                rt_printf("%d\n", pos_cnt);
-                sys_ready = 0;
-                ready_cnt = 0;
 
-            }
+          
 
             if (started[i]) ServoState |= (1 << i);
         }
@@ -509,29 +389,10 @@ void EPOS_CSP(void *arg)
 
                 ival = (int) (sine_amp * (cos(PI2 * f * gt)) - sine_amp);
 
-//                rt_printf("go = %d\n", ival);
-//                for (i=0; i<NUMOFEPOS4_DRIVE; ++i) {
-//
-////                    if (epos4_drive_pt[i].ptInParam->DigitalInput != 0x00000000) {
-////                        rt_printf("oh\n");
-////                        goto skip;
-////                    } else {
-//                        if (i % 2 == 0)
-//                            epos4_drive_pt[i].ptOutParam->TargetPosition = ival + zeropos[i];
-//                        else
-//                            epos4_drive_pt[i].ptOutParam->TargetPosition = -ival + zeropos[i];
-//                        rt_printf("Actual Position = %i / %i\n", epos4_drive_pt[i].ptInParam->PositionActualValue,
-//                                  epos4_drive_pt[i].ptOutParam->TargetPosition);
-//                        rt_printf("%d\n",epos4_drive_pt[0].ptOutParam->HomingMethod);
-//                        rt_printf("%d\n",epos4_drive_pt[0].ptInParam->ModeOfOperationDisplay);
-////                    }
-//                }
-//
-//                gt += period;
 
             for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
             {
-                if ((epos4_drive_pt[i].ptInParam->DigitalInput != 0x00000000) && (epos4_drive_pt[0].ptInParam->ModeOfOperationDisplay == 8))
+                if ((epos4_drive_pt[i].ptInParam->DigitalInput != 0x00000000) )
                 {
                     limit_flag = TRUE;
                 }
@@ -576,7 +437,7 @@ void EPOS_CSP(void *arg)
                     }
                     else
                         epos4_drive_pt[i].ptOutParam->TargetPosition = zeropos[i];
-                    rt_printf("%i, Actual Position = %i / %i\n", targetpos[i], epos4_drive_pt[i].ptInParam->PositionActualValue,
+                    rt_printf("%i, Actual Position = %i / %i\n", i, epos4_drive_pt[i].ptInParam->PositionActualValue,
                               epos4_drive_pt[i].ptOutParam->TargetPosition);
 //                    rt_printf("Error Code = 0x%x\n",epos4_drive_pt[i].ptInParam->ErrorCode);
 
@@ -633,7 +494,7 @@ void EPOS_CSP(void *arg)
     //Servo OFF
     for (i=0; i<NUMOFEPOS4_DRIVE; ++i)
     {
-        epos4_drive_pt[i].ptOutParam->ControlWord=2; //Servo OFF (Disable voltage, transition#9)
+        epos4_drive_pt[i].ptOutParam->ControlWord=6; //Servo OFF (Disable voltage, transition#9)
     }
     ec_send_processdata();
     wkc = ec_receive_processdata(EC_TIMEOUTRET);
@@ -728,8 +589,7 @@ void traj_time(int32_t msgpos[])
         if (c_1[i]<abs(msgpos[i]-zeropos[i])){
             t1[i] = (int) (abs(velprofile[i]*rpm2ips/(accprofile[i]*rpms2ipss)));
             t2[i] = (int) (abs((msgpos[i]-zeropos[i])/(velprofile[i]*rpm2ips)));
-//            t1[i] = (int) (sqrt(abs(velprofile[i]*rpm2ips/(accprofile[i]*rpms2ipss))));
-//            t2[i] = (int) (sqrt(abs((msgpos[i]-zeropos[i])/(velprofile[i]*rpm2ips))));
+
         }
         else {
             t1[i] = (int) (sqrt(abs(msgpos[i] - zeropos[i]) / (accprofile[i] * rpms2ipss)));
@@ -748,7 +608,7 @@ void des_callback(const ethercat_test::pos& msg)
     {
 //        epos4_drive_pt[i].ptOutParam->ModeOfOperation = 8;
 //        epos4_drive_pt[i].ptOutParam->TargetPosition = msg.position[i];
-        desinc[i] = msg.position[i];
+        desinc[i] = msg.position[i]+ zeropos[i];
 
     }
 
