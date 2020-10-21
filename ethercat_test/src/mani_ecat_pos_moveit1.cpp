@@ -15,7 +15,7 @@
 #include <alchemy/timer.h>
 #include <xenomai/init.h>
 
-//#include "ethercat_test/pos.h"
+#include "ethercat_test/pos.h"
 #include "ethercat_test/trajectory.h"
 #include "control_msgs/FollowJointTrajectoryActionGoal.h"
 #include "trajectory_msgs/JointTrajectoryPoint.h"
