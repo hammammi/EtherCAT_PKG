@@ -60,6 +60,8 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    pos.msg
+   trajectory.msg
+   vel.msg
  )
 
 ## Generate services in the 'srv' folder
