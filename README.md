@@ -55,3 +55,12 @@ network:
 $ sudo netplan apply   
    
 ifconfig 명령을 통해 적용된 내용확인
+   
+   
+   
+----------------------------------------------
+
+사용 코드
+ver1 homing (incremental encoder type) : mani_ecat_homing    
+pos control : mani_ecat_profile_pos    
+mani + mobile control : dualarm_ecat_ctrl    
