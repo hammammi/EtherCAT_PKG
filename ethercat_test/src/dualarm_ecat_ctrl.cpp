@@ -17,14 +17,16 @@
 
 #include "ethercat_test/pos.h"
 #include "ethercat_test/vel.h"
+#include "control_msgs/FollowJointTrajectoryActionGoal.h"
+#include "trajectory_msgs/JointTrajectoryPoint.h"
 #include "soem/ethercat.h"
 #include "pdo_def.h"
 #include "servo_def.h"
 #include "ecat_dc.h"
 
 #define EC_TIMEOUTMON 500
-#define NUMOFMANI_DRIVE     7
-#define NUMOFWHEEL_DRIVE    4
+#define NUMOFMANI_DRIVE     1
+#define NUMOFWHEEL_DRIVE    1
 #define NUMOFEPOS4_DRIVE	NUMOFMANI_DRIVE + NUMOFWHEEL_DRIVE
 #define NUMOFMANI_DRIVE_HALF     NUMOFMANI_DRIVE/2
 #define NSEC_PER_SEC 1000000000
@@ -73,6 +75,12 @@ int32_t wheeldes[NUMOFWHEEL_DRIVE] = {0};
 double rad2inc = pow(2,18)/2.0/M_PI;
 double rpm2ips = pow(2,18)/60000.0; // rpm to inc per step (ms)
 double rpms2ipss = pow(2,18)/60000.0/1000.0; // rpm/sec to inc/step/step
+
+//ver 1
+int gear_ratio[] = {160, 160, 160, 120, 100, 100, 100};
+//double g_AxisVelRatio[] = {1.6, 1.6, 1.6, 1.2, 1, 1, 1};
+int pulse_rev[] = {4096, 4096, 4096, 4096, 2048, 2048, 2048};
+
 
 int os;
 uint32_t ob;
@@ -658,29 +666,29 @@ void pub_run(void *arg)
                 itime++;
                 rt_printf("Time = %06d.%01d, \e[32;1m fail=%ld\e[0m, ecat_T=%ld, maxT=%ld\n",
                           itime/10, itime%10, recv_fail_cnt, ethercat_time/1000, worst_time/1000);
-                for(i=0; i<NUMOFMANI_DRIVE; i++)
+                for( i=0; i<NUMOFMANI_DRIVE; i++)
                 {
-//                    rt_printf("EPOS4_DRIVE #%i\n", i+1);
-//                    rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
-//                    rt_printf("Actual/Target = %i / %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue, epos4_drive_pt[i].ptOutParam->TargetPosition);
-////                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
+                    rt_printf("EPOS4_DRIVE #%i\n", i+1);
+                    rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
+                    rt_printf("Actual/Target = %i / %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue, epos4_drive_pt[i].ptOutParam->TargetPosition);
+//                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
                     msg.position[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
-//                    rt_printf("\n");
+                    rt_printf("\n");
                 }
-                for (int i=NUMOFMANI_DRIVE;i<NUMOFEPOS4_DRIVE;i++)
+                for ( i=NUMOFMANI_DRIVE;i<NUMOFEPOS4_DRIVE;i++)
                 {
                     rt_printf("Wheel #%i\n", (i-NUMOFMANI_DRIVE+1));
                     rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
                     rt_printf("Actual/Target = %i / %i\n" , epos4_drive_pt[i].ptInParam->VelocityActualValue, epos4_drive_pt[i].ptOutParam->TargetVelocity);
-//                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);t_printf("EPOS4_DRIVE #%i\n", i+1);
-
+////                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);t_printf("EPOS4_DRIVE #%i\n", i+1);
+//
                     msg2.velocity[i-NUMOFMANI_DRIVE] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
                 }
-
+//
                 pos_pub.publish(msg);
                 vel_pub.publish(msg2);
-
-//                }
+//
+////                }
             }
         }
     }
@@ -704,23 +712,48 @@ void traj_time(int32_t msgpos[])
     }
 }
 
+
 void motion_callback(const ethercat_test::pos& msg)
 {
-    for (int i=0; i<NUMOFMANI_DRIVE; i++)
+    for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
     {
         desinc[i] = msg.position[i] + homepos[i];
         rt_printf("%i, targetpos = %i,%i\n" ,i, msg.position[i],homepos[i]);
     }
     traj_time(desinc);
-    rt_printf("Joint #\tTime\tPresent\tTarget");
-    for (int i=0; i<NUMOFMANI_DRIVE; ++i)
+//    ROS_INFO("Joint #\tTime\tPresent\tTarget");
+    for (int i=0; i<NUMOFEPOS4_DRIVE; ++i)
     {
-        rt_printf("%d\t%.3fs\t%d\t%d", i, (t1[i]+t2[i])/1000.0, zeropos[i],desinc[i]);
+//        ROS_INFO("%d\t%.3fs\t%d\t%d", i, (t1[i]+t2[i])/1000.0, zeropos[i],desinc[i]);
     }
     gt = 0;
     memcpy(targetpos, &desinc, sizeof(desinc));
 }
 
+//void motion_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg)
+//{
+//
+//    std::vector<trajectory_msgs::JointTrajectoryPoint>::size_type traj = msg->goal.trajectory.points.size();
+//    int pos_desired[traj-1][NUMOFEPOS4_DRIVE] = {0};
+//    double pos_desired_rad[traj-1][NUMOFEPOS4_DRIVE] = {0};
+//
+//
+//    for (int j=1;j<traj;++j){
+//
+//        for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
+//        {
+//            pos_desired_rad[j-1][i] = msg->goal.trajectory.points[j].positions[i];
+//            pos_desired[j-1][i] = pos_desired_rad[j-1][i]*2*pulse_rev[i]*gear_ratio[i]/M_PI;  // unit convert
+//            desinc[i] = pos_desired[j-1][i] + homepos[i];
+//            rt_printf("%i, targetpos = %i, %i,%i\n" ,i, pos_desired_rad[j-1][i], pos_desired[j-1][i],homepos[i]);
+//        }
+//        traj_time(desinc);
+//
+//        gt = 0;
+//        memcpy(targetpos, &desinc, sizeof(desinc));
+//
+//    }
+//}
 //void motion_callback2(const ethercat_test::pos& msg)
 //{
 //    for (int i=NUMOFMANI_DRIVE_HALF; i<NUMOFMANI_DRIVE; ++i)
@@ -771,14 +804,15 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "dualarm_sub");
     ros::NodeHandle n;
-    ros::Subscriber pos_sub = n.subscribe("pos_des", 1, motion_callback);
+    ros::Subscriber pos_sub = n.subscribe("ourarm/robotic_arm_controller/follow_joint_trajectory/goal", 1, motion_callback);
+
     //    ros::Subscriber pos2_sub = n.subscribe("pos_des2", 1, motion_callback2);
     ros::Subscriber vel_sub = n.subscribe("input_msg",1, wheel_callback);
 
     rt_task_create(&motion_task, "SOEM_motion_task", 0, 95, 0 );
     rt_task_set_affinity(&motion_task, &cpu_set_ecat); //CPU affinity for ethercat task
 
-    rt_task_create(&print_task, "ec_printing", 0, 50, 0 );
+    rt_task_create(&pub_task, "ec_printing", 0, 50, 0 );
     rt_task_set_affinity(&pub_task, &cpu_set_pub); //CPU affinity for printing task
 
     rt_task_start(&motion_task, &EPOS_OP, NULL);
