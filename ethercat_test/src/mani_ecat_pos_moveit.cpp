@@ -591,7 +591,7 @@ void motion_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstP
         {
             pos_desired_rad[j-1][i] = msg->goal.trajectory.points[j].positions[i];
             pos_desired[j-1][i] = pos_desired_rad[j-1][i]*2*pulse_rev[i]*gear_ratio[i]/M_PI;  // unit convert
-            desinc[i] = pos_desired[i] + homepos[i];
+            desinc[i] = pos_desired[j-1][i] + homepos[i];
             rt_printf("%i, targetpos = %i,%i\n" ,i, pos_desired[i],homepos[i]);
         }
         traj_time(desinc);
