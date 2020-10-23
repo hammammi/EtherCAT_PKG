@@ -715,7 +715,7 @@ void traj_time(int32_t msgpos[])
 
 void motion_callback(const ethercat_test::pos& msg)
 {
-    for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
+    for (int i=0; i<NUMOFMANI_DRIVE; i++)
     {
         desinc[i] = msg.position[i] + homepos[i];
         rt_printf("%i, targetpos = %i,%i\n" ,i, msg.position[i],homepos[i]);
