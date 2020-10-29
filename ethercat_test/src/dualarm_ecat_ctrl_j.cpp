@@ -61,9 +61,9 @@ int recv_fail_cnt = 0;
 int gt = 0;
 
 int32_t zeropos[NUMOFMANI_DRIVE] = {0}; // initial pos
-int32_t homepos[NUMOFMANI_DRIVE] = {0};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069};
+int32_t homepos[NUMOFMANI_DRIVE] = {0};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069, 85386};
 int32_t desinc[NUMOFMANI_DRIVE] = {0};
-int32_t targetpos[NUMOFMANI_DRIVE] = {0};//{-63715, 38594, 37694, -20069};
+int32_t targetpos[NUMOFMANI_DRIVE] = {0};//{-63715, 38594, 37694, -20069, 85386};
 double velprofile[] = {5, 5, 5, 5, 5, 5, 5};
 double accprofile[] = {200, 200, 200, 200, 200, 200, 200};
 double c_1[NUMOFMANI_DRIVE] = {0};
