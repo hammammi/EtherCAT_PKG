@@ -24,10 +24,16 @@ def commander():
         'pose3' : [90,30,80,-90,-80,90,40],
         'pose4' : [20,-50,90,-80,-40,30,-25]
     }
+    
+    print "Press Enter to go home position"
+    raw_input()
+    command = joint_value['home']
+    pub.publish(command)
 
     while not rospy.is_shutdown():
         value = raw_input("Command : ")
         if (value=='joint'):
+            print "Press Enter to go each position"
             raw_input()
             command = joint_value['state1']
             print "Joint value = ", command
@@ -77,21 +83,22 @@ def commander():
             print "Joint value = ", command
             pub.publish(command)
         elif (value=='pose'):
+            print "Press Enter to go each position"
             raw_input()
             command = joint_value['pose1']
-            print "Joint value = ", command
+            print "#1 Joint value = ", command
             pub.publish(command)
             raw_input()
             command = joint_value['pose2']
-            print "Joint value = ", command
+            print "#2 Joint value = ", command
             pub.publish(command)
             raw_input()
             command = joint_value['pose3']
-            print "Joint value = ", command
+            print "#3 Joint value = ", command
             pub.publish(command)
             raw_input()
             command = joint_value['pose4']
-            print "Joint value = ", command
+            print "#4 Joint value = ", command
             pub.publish(command)
             raw_input()
             command = joint_value['home']
