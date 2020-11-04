@@ -6,7 +6,6 @@ import rospy
 ## END_SUB_TUTORIAL
 from ethercat_test.msg import pos
 
-int32 home = [0,0,0,0,0,0,0]
 
 def commander():
     pub = rospy.Publisher('pos_des',pos,queue_size=10)
