@@ -99,17 +99,15 @@ def commander():
             pub.publish(command)
 
 
-
 def main():
-try:
-    commander()
-
-except rospy.ROSInterruptException:
-print "============ Payload test complete!"
-return
-except KeyboardInterrupt:
-print "============ Payload test complete!"
-return
+    try:
+        commander()
+    except rospy.ROSInterruptException:
+        print "============ Payload test complete!"
+        return
+    except KeyboardInterrupt:
+        print "============ Payload test complete!"
+        return
 
 if __name__ == '__main__':
     main()
