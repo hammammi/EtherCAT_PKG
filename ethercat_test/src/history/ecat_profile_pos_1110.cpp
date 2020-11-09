@@ -16,6 +16,8 @@
 #include <xenomai/init.h>
 
 #include "ethercat_test/pos.h"
+#include "control_msgs/FollowJointTrajectoryActionGoal.h"
+#include "trajectory_msgs/JointTrajectoryPoint.h"
 #include "soem/ethercat.h"
 #include "pdo_def.h"
 #include "servo_def.h"
@@ -55,17 +57,25 @@ int recv_fail_cnt = 0;
 int gt = 0;
 
 int32_t zeropos[NUMOFEPOS4_DRIVE] = {0}; // initial pos
-int32_t homepos[NUMOFEPOS4_DRIVE] = {0};//{-63715, 38594, 37694, -20069, 85386};
+int32_t homepos[NUMOFEPOS4_DRIVE] = {0};//{-63715, 38594, 37694, -20069};
 int32_t desinc[NUMOFEPOS4_DRIVE] = {0};
-int32_t targetpos[NUMOFEPOS4_DRIVE] = {0};//{-63715, 38594, 37694, -20069, 85386};
-double velprofile[] = {2, 2, 2, 2, 2, 2, 2};
-double accprofile[] = {100, 100, 100, 100, 100, 100, 100};
+int32_t targetpos[NUMOFEPOS4_DRIVE] = {0};//{-63715, 38594, 37694, -20069};
+double velprofile[] = {3, 2, 2.5, 3, 3, 3, 3};
+double accprofile[] = {200, 20, 200, 200, 100, 100, 100};
 double c_1[NUMOFEPOS4_DRIVE] = {0};
 int t1[NUMOFEPOS4_DRIVE] = {0};
 int t2[NUMOFEPOS4_DRIVE] = {0};
-double rad2inc = pow(2,18)/2.0/M_PI;
-double rpm2ips = pow(2,18)/60000.0; // rpm to inc per step (ms)
-double rpms2ipss = pow(2,18)/60000.0/1000.0; // rpm/sec to inc/step/step
+
+//ver 1
+int gear_ratio[] = {160, 160, 160, 120, 100, 100, 100};
+//double g_AxisVelRatio[] = {1.6, 1.6, 1.6, 1.2, 1, 1, 1};
+int pulse_rev[] = {4096, 4096, 4096, 4096, 2048, 2048, 2048};
+
+double rad2inc[NUMOFEPOS4_DRIVE] = {gear_ratio[0]*pulse_rev[0]*4/2.0/M_PI, gear_ratio[1]*pulse_rev[1]*4/2.0/M_PI, gear_ratio[2]*pulse_rev[2]*4/2.0/M_PI, gear_ratio[3]*pulse_rev[3]*4/2.0/M_PI, gear_ratio[4]*pulse_rev[4]*4/2.0/M_PI, gear_ratio[5]*pulse_rev[5]*4/2.0/M_PI, gear_ratio[6]*pulse_rev[6]*4/2.0/M_PI};
+double rpm2ips[NUMOFEPOS4_DRIVE] = {gear_ratio[0]*pulse_rev[0]*4/60000.0, gear_ratio[1]*pulse_rev[1]*4/60000.0, gear_ratio[2]*pulse_rev[2]*4/60000.0, gear_ratio[3]*pulse_rev[3]*4/60000.0, gear_ratio[4]*pulse_rev[4]*4/60000.0, gear_ratio[5]*pulse_rev[5]*4/60000.0, gear_ratio[6]*pulse_rev[6]*4/60000.0}; // rpm to inc per step (ms)
+double rpms2ipss[NUMOFEPOS4_DRIVE] = {gear_ratio[0]*pulse_rev[0]*4/60000.0/1000.0, gear_ratio[1]*pulse_rev[1]*4/60000.0/1000.0, gear_ratio[2]*pulse_rev[2]*4/60000.0/1000.0, gear_ratio[3]*pulse_rev[3]*4/60000.0/1000.0, gear_ratio[4]*pulse_rev[4]*4/60000.0/1000.0, gear_ratio[5]*pulse_rev[5]*4/60000.0/1000.0, gear_ratio[6]*pulse_rev[6]*4/60000.0/1000.0}; // rpm/sec to inc/step/step
+
+
 
 int os;
 uint32_t ob;
@@ -402,23 +412,23 @@ void EPOS_CSP(void *arg)
                     }
                     if (c_1[i] < abs(targetpos[i] - zeropos[i])) {
                         if (gt >0 && gt <= t1[i]) {
-                            p_des = (int) (zeropos[i] + 0.5 * accprofile[i] * gt * gt * rpms2ipss);
+                            p_des = (int) (zeropos[i] + 0.5 * accprofile[i] * gt * gt * rpms2ipss[i]);
                         } else if (gt <= t2[i]) {
-                            p_des = (int) (zeropos[i] + c_1[i] + (gt - t1[i]) * velprofile[i] * rpm2ips);
+                            p_des = (int) (zeropos[i] + c_1[i] + (gt - t1[i]) * velprofile[i] * rpm2ips[i]);
                         } else if (gt <= (t1[i] + t2[i])) {
                             p_des = (int) (zeropos[i] + c_1[i]
-                                           + (t2[i] - t1[i]) * velprofile[i] * rpm2ips +
-                                           (gt - t2[i]) * velprofile[i] * rpm2ips
-                                           - 0.5 * accprofile[i] * rpms2ipss * (gt - t2[i]) * (gt - t2[i]));
+                                           + (t2[i] - t1[i]) * velprofile[i] * rpm2ips[i] +
+                                           (gt - t2[i]) * velprofile[i] * rpm2ips[i]
+                                           - 0.5 * accprofile[i] * rpms2ipss[i] * (gt - t2[i]) * (gt - t2[i]));
                         } else {
                             p_des = targetpos[i];
                         }
                     } else {
                         if (gt > 0 && gt <= t1[i]) {
-                            p_des = (int) (zeropos[i] + 0.5 * accprofile[i] * rpms2ipss * gt * gt);
+                            p_des = (int) (zeropos[i] + 0.5 * accprofile[i] * rpms2ipss[i] * gt * gt);
                         } else if (gt <= t2[i]) {
                             p_des = (int) (zeropos[i] + velprofile[i] * t1[i]
-                                           - 0.5 * accprofile[i] * rpms2ipss * (t2[i] - gt) * (t2[i] - gt));
+                                           - 0.5 * accprofile[i] * rpms2ipss[i] * (t2[i] - gt) * (t2[i] - gt));
                         } else {
                             p_des = targetpos[i];
                         }
@@ -434,14 +444,14 @@ void EPOS_CSP(void *arg)
             {
                 zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
                 targetpos[i] = zeropos[i];
-                c_1[i] = velprofile[i]*velprofile[i]/2.0/accprofile[i]*pow(2,18)/60.0;
+                c_1[i] = velprofile[i]*velprofile[i]/2.0/accprofile[i]*gear_ratio[i]*pulse_rev[i]*4/60.0;
                 epos4_drive_pt[i].ptOutParam->TargetPosition=zeropos[i];
                 if (c_1[i]<abs(targetpos[i]-zeropos[i])){
-                    t1[i] = (int) (velprofile[i]*rpm2ips/(accprofile[i]*rpms2ipss));
-                    t2[i] = (int) (abs(targetpos[i]-zeropos[i])/(velprofile[i]*rpm2ips));
+                    t1[i] = (int) (velprofile[i]*rpm2ips[i]/(accprofile[i]*rpms2ipss[i]));
+                    t2[i] = (int) (abs(targetpos[i]-zeropos[i])/(velprofile[i]*rpm2ips[i]));
                 }
                 else {
-                    t1[i] = (int) (sqrt(abs(targetpos[i] - zeropos[i]) / (accprofile[i] * rpms2ipss)));
+                    t1[i] = (int) (sqrt(abs(targetpos[i] - zeropos[i]) / (accprofile[i] * rpms2ipss[i])));
                     t2[i] = (int) (2 * t1[i]);
                 }
             }
@@ -467,7 +477,7 @@ void EPOS_CSP(void *arg)
     //Servo OFF
     for (i=0; i<NUMOFEPOS4_DRIVE; i++)
     {
-        epos4_drive_pt[i].ptOutParam->ControlWord=6; //Servo OFF (Disable voltage, transition#9)
+        epos4_drive_pt[i].ptOutParam->ControlWord=2; //Servo OFF (Disable voltage, transition#9)
     }
     ec_send_processdata();
     wkc = ec_receive_processdata(EC_TIMEOUTRET);
@@ -532,7 +542,7 @@ void print_run(void *arg)
                     rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
                     rt_printf("Actual Position = %i / %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue, epos4_drive_pt[i].ptOutParam->TargetPosition);
 //                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
-		    msg.position[i] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
+		    msg.position[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
                     rt_printf("\n");
                 }
 
@@ -551,13 +561,13 @@ void traj_time(int32_t msgpos[])
     for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
     {
         zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
-        c_1[i] = velprofile[i]*velprofile[i]/2.0/accprofile[i]*pow(2,18)/60.0;
+        c_1[i] = velprofile[i]*velprofile[i]/2.0/accprofile[i]*gear_ratio[i]*pulse_rev[i]*4/60.0;
         if (c_1[i]<abs(msgpos[i]-zeropos[i])){
-            t1[i] = (int) (abs(velprofile[i]*rpm2ips/(accprofile[i]*rpms2ipss)));
-            t2[i] = (int) (abs((msgpos[i]-zeropos[i])/(velprofile[i]*rpm2ips)));
+            t1[i] = (int) (abs(velprofile[i]*rpm2ips[i]/(accprofile[i]*rpms2ipss[i])));
+            t2[i] = (int) (abs((msgpos[i]-zeropos[i])/(velprofile[i]*rpm2ips[i])));
         }
         else {
-            t1[i] = (int) (sqrt(abs(msgpos[i] - zeropos[i]) / (accprofile[i] * rpms2ipss)));
+            t1[i] = (int) (sqrt(abs(msgpos[i] - zeropos[i]) / (accprofile[i] * rpms2ipss[i])));
             t2[i] = (int) (2 * t1[i]);
         }
     }
@@ -578,7 +588,37 @@ void motion_callback(const ethercat_test::pos& msg)
     }
     gt = 0;
     memcpy(targetpos, &desinc, sizeof(desinc));
+
+    ec_send_processdata();
+    wkc = ec_receive_processdata(EC_TIMEOUTRET);
+
 }
+
+
+//void motion_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg)
+//{
+//
+//    std::vector<trajectory_msgs::JointTrajectoryPoint>::size_type traj = msg->goal.trajectory.points.size();
+//    int pos_desired[traj-1][NUMOFEPOS4_DRIVE] = {0};
+//    double pos_desired_rad[traj-1][NUMOFEPOS4_DRIVE] = {0};
+//
+//
+//    for (int j=1;j<traj;++j){
+//
+//        for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
+//        {
+//            pos_desired_rad[j-1][i] = msg->goal.trajectory.points[j].positions[i];
+//            pos_desired[j-1][i] = pos_desired_rad[j-1][i]*2*pulse_rev[i]*gear_ratio[i]/M_PI;  // unit convert
+//            desinc[i] = pos_desired[j-1][i] + homepos[i];
+//            rt_printf("%i, targetpos = %i, %i,%i\n" ,i, pos_desired_rad[j-1][i], pos_desired[j-1][i],homepos[i]);
+//        }
+//        traj_time(desinc);
+//
+//        gt = 0;
+//        memcpy(targetpos, &desinc, sizeof(desinc));
+//
+//    }
+//}
 
 void catch_signal(int sig)
 {
@@ -607,7 +647,9 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "mani_sub");
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe("pos_des", 1, motion_callback);
+//    ros::Subscriber sub = n.subscribe("pos_des", 1, motion_callback);
+    ros::Subscriber pos_sub = n.subscribe("ourarm/robotic_arm_controller/follow_joint_trajectory/goal", 1, motion_callback);
+
 
     rt_task_create(&motion_task, "SOEM_motion_task", 0, 95, 0 );
     rt_task_set_affinity(&motion_task, &cpu_set_ecat); //CPU affinity for ethercat task
