@@ -55,7 +55,7 @@ int recv_fail_cnt = 0;
 int gt = 0;
 
 int32_t zeropos[NUMOFEPOS4_DRIVE] = {0}; // initial pos
-int32_t homepos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -72427, -5000};
+int32_t homepos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
 int32_t desinc[NUMOFEPOS4_DRIVE] = {0};
 int32_t targetpos[NUMOFEPOS4_DRIVE] = {0};//{-63715, 38594, 37694, -20069, 85386};
 double velprofile[] = {0.5, 0.5, 1, 1, 1.5, 1.5, 2};
