@@ -84,7 +84,7 @@ uint8_t  ob3;
 
 void resol_conv(){
     for (int i=0;i<NUMOFEPOS4_DRIVE;i++){
-        resol[i] = 4*gear_ratio[i]*pulse_rev_inc[i];
+        resol[i] = 4*gear_ratio[i]*pulse_rev[i];
         rad2inc[i] = resol[i]/2.0/M_PI;
         rpm2ips[i] = resol[i]/60000.0; // rpm to inc per step (ms)
         rpms2ipss[i] = resol[i]/60000.0/1000.0; // rpm/sec to inc/step/step
