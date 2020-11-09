@@ -58,8 +58,8 @@ int32_t zeropos[NUMOFEPOS4_DRIVE] = {0}; // initial pos
 int32_t homepos[NUMOFEPOS4_DRIVE] = {0};//{-63715, 38594, 37694, -20069, 85386};
 int32_t desinc[NUMOFEPOS4_DRIVE] = {0};
 int32_t targetpos[NUMOFEPOS4_DRIVE] = {0};//{-63715, 38594, 37694, -20069, 85386};
-double velprofile[] = {2, 2, 2, 2, 2, 2, 2};
-double accprofile[] = {100, 100, 100, 100, 100, 100, 100};
+double velprofile[] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+double accprofile[] = {10, 10, 10, 10, 10, 10, 10};
 double c_1[NUMOFEPOS4_DRIVE] = {0};
 int t1[NUMOFEPOS4_DRIVE] = {0};
 int t2[NUMOFEPOS4_DRIVE] = {0};
@@ -88,6 +88,9 @@ void resol_conv(){
         rad2inc[i] = resol[i]/2.0/M_PI;
         rpm2ips[i] = resol[i]/60000.0; // rpm to inc per step (ms)
         rpms2ipss[i] = resol[i]/60000.0/1000.0; // rpm/sec to inc/step/step
+        rt_printf("%f, %f,%f\n" ,resol[i], rpm2ips[i] ,rpms2ipss[i]);
+
+
     }
 }
 
@@ -587,7 +590,8 @@ void motion_callback(const ethercat_test::pos& msg)
 {
     for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
     {
-        desinc[i] = msg.position[i] + homepos[i];
+//        desinc[i] = msg.position[i] + homepos[i];
+        desinc[i] = int (msg.position[i]*resol[i]/360)+ homepos[i];
         rt_printf("%i, targetpos = %i,%i\n" ,i, msg.position[i],homepos[i]);
     }
     traj_time(desinc);
@@ -598,7 +602,37 @@ void motion_callback(const ethercat_test::pos& msg)
     }
     gt = 0;
     memcpy(targetpos, &desinc, sizeof(desinc));
+
+    ec_send_processdata();
+    wkc = ec_receive_processdata(EC_TIMEOUTRET);
+
 }
+
+
+//void motion_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg)
+//{
+//
+//    std::vector<trajectory_msgs::JointTrajectoryPoint>::size_type traj = msg->goal.trajectory.points.size();
+//    int pos_desired[traj-1][NUMOFEPOS4_DRIVE] = {0};
+//    double pos_desired_rad[traj-1][NUMOFEPOS4_DRIVE] = {0};
+//
+//
+//    for (int j=1;j<traj;++j){
+//
+//        for (int i=0; i<NUMOFEPOS4_DRIVE; i++)
+//        {
+//            pos_desired_rad[j-1][i] = msg->goal.trajectory.points[j].positions[i];
+//            pos_desired[j-1][i] = pos_desired_rad[j-1][i]*2*pulse_rev[i]*gear_ratio[i]/M_PI;  // unit convert
+//            desinc[i] = pos_desired[j-1][i] + homepos[i];
+//            rt_printf("%i, targetpos = %i, %i,%i\n" ,i, pos_desired_rad[j-1][i], pos_desired[j-1][i],homepos[i]);
+//        }
+//        traj_time(desinc);
+//
+//        gt = 0;
+//        memcpy(targetpos, &desinc, sizeof(desinc));
+//
+//    }
+//}
 
 void catch_signal(int sig)
 {
@@ -629,7 +663,7 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "mani_sub");
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe("pos_des", 1, motion_callback);
+    ros::Subscriber pos_sub = n.subscribe("ourarm/robotic_arm_controller/follow_joint_trajectory/goal", 1, motion_callback);
 
     rt_task_create(&motion_task, "SOEM_motion_task", 0, 95, 0 );
     rt_task_set_affinity(&motion_task, &cpu_set_ecat); //CPU affinity for ethercat task
