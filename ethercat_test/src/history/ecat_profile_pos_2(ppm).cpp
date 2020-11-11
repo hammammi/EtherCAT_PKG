@@ -1,5 +1,6 @@
 //
 // Created by jeong on 20. 9. 22..
+// this is not modified in position trajectory, trajectory time..
 //
 
 #include <ros/ros.h>
