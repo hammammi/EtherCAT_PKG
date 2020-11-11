@@ -1,5 +1,6 @@
 //
 // Created by mservo lab
+// this is not modified in position trajectory, trajectory time..
 //
 
 #include <ros/ros.h>
