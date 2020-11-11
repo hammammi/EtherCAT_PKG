@@ -499,7 +499,7 @@ void EPOS_CSP(void *arg)
     //Servo OFF
     for (i=0; i<NUMOFEPOS4_DRIVE; i++)
     {
-        epos4_drive_pt[i].ptOutParam->ControlWord=2; //Servo OFF (Disable voltage, transition#9)
+        epos4_drive_pt[i].ptOutParam->ControlWord=2; // Quick stop
     }
     ec_send_processdata();
     wkc = ec_receive_processdata(EC_TIMEOUTRET);
