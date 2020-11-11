@@ -426,6 +426,21 @@ void EPOS_CSP(void *arg)
                         accprofile[i] = -abs(accprofile[i]);
                         c_1[i] = -abs(c_1[i]);
                     }
+                    
+//                    if (homepos[i]>0){
+//                        if ((-resol[i]/2 +homepos[i]) > targetpos[i] && (-resol[i]/2 +homepos[i]) > zeropos[i]){
+//                            velprofile[i] = -velprofile[i];
+//                            accprofile[i] = -accprofile[i];
+//                            c_1[i] = -c_1[i]);
+//                        }
+//                    }
+//                    else{
+//                        if ((resol[i]/2 +homepos[i]) < targetpos[i] && (resol[i]/2 +homepos[i]) < zeropos[i]){
+//                            velprofile[i] = -velprofile[i];
+//                            accprofile[i] = -accprofile[i];
+//                            c_1[i] = -c_1[i]);
+//                        }
+//                    }
 
                     if (abs(c_1[i]) < abs(targetpos[i] - zeropos[i])) {
                         if (gt >=0 && gt <= t1[i]) {
