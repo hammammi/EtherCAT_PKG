@@ -691,6 +691,8 @@ int main(int argc, char** argv)
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
     printf("use default adapter %s\n", ecat_ifname);
+    
+    resol_conv();
 
     cpu_set_t cpu_set_ecat;
     CPU_ZERO(&cpu_set_ecat);
