@@ -428,7 +428,7 @@ void EPOS_OP(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
-    int p_des = 0, i;
+    int p_des = 0, i, f;
 
     if (ecat_init()==FALSE)
     {
@@ -547,6 +547,11 @@ void EPOS_OP(void *arg)
                 if (epos4_drive_pt[i].ptInParam->DigitalInput != 0x00000000)
                 {
                     limit_flag = TRUE;
+                    zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
+                    if (wait ==0)
+                        rt_printf("joint #%i is limit position, %i\n", i+1,zeropos[i]);
+                    f = i;
+
                 }
                 else
                 {
@@ -645,8 +650,19 @@ void EPOS_OP(void *arg)
 
         if (limit_flag)
         {
+            zeropos[f]=epos4_drive_pt[f].ptInParam->PositionActualValue;
+
+            if (accprofile[f] <0){
+                targetpos[f] = zeropos[f] + 2;
+            }
+            else{
+                targetpos[f] = zeropos[f] - 2;
+            }
+
+            epos4_drive_pt[f].ptOutParam->TargetPosition=targetpos[f];
+
             wait += 1;
-            if (wait == 2000)
+            if (wait == step_size*1000)
                 run = 0;
         }
     }
