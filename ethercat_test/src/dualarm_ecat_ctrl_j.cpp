@@ -873,6 +873,8 @@ int main(int argc, char** argv)
     cpu_set_t cpu_set_pub;
     CPU_ZERO(&cpu_set_pub);
     CPU_SET(1, &cpu_set_pub); //assign CPU#1 (or any) for main task
+  
+    resol_conv();
 
     ros::init(argc, argv, "dualarm_sub");
     ros::NodeHandle n;
