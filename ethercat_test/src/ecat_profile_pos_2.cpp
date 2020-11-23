@@ -323,7 +323,7 @@ void EPOS_CSP(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
-    int p_des = 0, i, f;
+    int p_des = 0, i, f, w;
 
     if (ecat_init(0x08)==FALSE)
     {
@@ -601,18 +601,6 @@ void EPOS_CSP(void *arg)
                                 }
                             }
                         }
-
-                    }
-
-                    if (i==5){
-                        b = epos4_drive_pt[i].ptInParam->PositionActualValue;
-                        rt_printf("%i,%i,%i,%i,",w,gt, p_des,b);
-                        if (gt==0) {
-                            rt_printf("%d, %d, %d, %d, %f,%f, %f,", int (zeropos[i]), int (targetpos[i]), int (targetpos[i]) - int (zeropos[i]),
-                                      actualvel[i], zerovel[i], accprofile[i], velprofile[i]);
-                            rt_printf("c, %i, %i, t,%d, %d, %d", c_1[i], c_2[i], t1[i], t2[i], t3[i]);
-                        }
-                        rt_printf("\n");
 
                     }
 
