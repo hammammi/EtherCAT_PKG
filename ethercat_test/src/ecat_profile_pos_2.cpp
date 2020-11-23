@@ -61,12 +61,12 @@ int wait = 0;
 int recv_fail_cnt = 0;
 int gt = 0;
 
-int32_t zeropos[NUMOFEPOS4_DRIVE] = {0}; // initial pos
+int32_t zeropos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000}; // initial pos
 double zerovel[NUMOFEPOS4_DRIVE] = {0}; // initial axis vel
 int32_t actualvel[NUMOFEPOS4_DRIVE] = {0}; // initial motor vel
-int32_t homepos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
+int32_t homepos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
 int32_t desinc[NUMOFEPOS4_DRIVE] = {0};
-int32_t targetpos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};  //{0};
+int32_t targetpos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};  //{0};
 double velprofile[] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
 double accprofile[] = {50, 50, 80, 80, 80, 80, 80};
 double gear_ratio[7] = {120, 120, 120, 120, 100, 100, 100};
@@ -323,7 +323,7 @@ void EPOS_CSP(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
-    int p_des = 0, i, f, w;
+    int p_des = 0, i, f,w;
 
     if (ecat_init(0x08)==FALSE)
     {
@@ -409,8 +409,15 @@ void EPOS_CSP(void *arg)
                 started[i] = ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
                 epos4_drive_pt[i].ptOutParam->ControlWord = controlword;
                 if (started[i]) ServoState |= (1 << i);
-                if (abs(epos4_drive_pt[i].ptInParam->PositionActualValue-targetpos[i])<3) TargetState |= (1<<i);
-                else TargetState = 0;
+
+                if (ready_cnt<10)
+                {
+                    zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
+                    targetpos[i] = zeropos[i];
+                    epos4_drive_pt[i].ptOutParam->TargetPosition=zeropos[i];
+
+                }
+
             }
         }
 
@@ -604,6 +611,18 @@ void EPOS_CSP(void *arg)
 
                     }
 
+//                    if (i==5){
+//                        b = epos4_drive_pt[i].ptInParam->PositionActualValue;
+//                        rt_printf("%i,%i,%i,%i,",w,gt, p_des,b);
+//                        if (gt==0) {
+//                            rt_printf("%d, %d, %d, %d, %f,%f, %f,", int (zeropos[i]), int (targetpos[i]), int (targetpos[i]) - int (zeropos[i]),
+//                                      actualvel[i], zerovel[i], accprofile[i], velprofile[i]);
+//                            rt_printf("c, %i, %i, t,%d, %d, %d", c_1[i], c_2[i], t1[i], t2[i], t3[i]);
+//                        }
+//                        rt_printf("\n");
+//
+//                    }
+
                     epos4_drive_pt[i].ptOutParam->TargetPosition = p_des;
                 }
 
@@ -653,7 +672,7 @@ void EPOS_CSP(void *arg)
     wkc = ec_receive_processdata(EC_TIMEOUTRET);
 
     rt_task_sleep(cycle_ns);
-    rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
+
 
 
     rt_printf("End EPOS CSP control, close socket\n");
