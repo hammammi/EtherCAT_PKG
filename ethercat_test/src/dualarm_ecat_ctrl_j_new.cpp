@@ -28,7 +28,7 @@
 
 #define EC_TIMEOUTMON 500
 #define NUMOFMANI1_DRIVE     7
-#define NUMOFMANI2_DRIVE     0
+#define NUMOFMANI2_DRIVE     1
 #define NUMOFMANI_DRIVE     NUMOFMANI1_DRIVE + NUMOFMANI2_DRIVE
 #define NUMOFWHEEL_DRIVE    4
 #define NUMOFEPOS4_DRIVE	NUMOFMANI_DRIVE + NUMOFWHEEL_DRIVE
@@ -441,7 +441,7 @@ void EPOS_OP(void *arg)
 {
     unsigned long ready_cnt = 0;
     uint16_t controlword=0;
-    int p_des = 0, i, f;
+    int p_des = 0, i, f, w;
 
     if (ecat_init()==FALSE)
     {
@@ -526,8 +526,8 @@ void EPOS_OP(void *arg)
                 started[i] = ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
                 epos4_drive_pt[i].ptOutParam->ControlWord = controlword;
                 if (started[i]) ServoState |= (1 << i);
-                if (abs(epos4_drive_pt[i].ptInParam->PositionActualValue-targetpos[i])<3) TargetState |= (1<<i);
-                else TargetState = 0;
+//                if (abs(epos4_drive_pt[i].ptInParam->PositionActualValue-targetpos[i])<3) TargetState |= (1<<i);
+//                else TargetState = 0;
                 if (ready_cnt==1)
                 {
                     zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
@@ -579,7 +579,7 @@ void EPOS_OP(void *arg)
                 }
                 else
                 {
-                    if (targetpos[i] >= zeropos[i]) {
+                    if (targetpos1[i] >= zeropos[i]) {
                         velprofile[i] = abs(velprofile[i]);
                         accprofile[i] = abs(accprofile[i]);
 
@@ -899,24 +899,28 @@ void EPOS_OP(void *arg)
         {
             zeropos[f]=epos4_drive_pt[f].ptInParam->PositionActualValue;
 
-            if (accprofile[f] <0){
-                if (f<NUMOFMANI1_DRIVE){
+
+            if (f<NUMOFMANI1_DRIVE){
+
+                if (accprofile[f] <0){
                     targetpos1[f] = zeropos[f] + 2;
                 }
                 else{
-                    targetpos2[f-NUMOFMANI1_DRIVE] = zeropos[f] + 2;
-                }
-            }
-            else{
-                if (f<NUMOFMANI1_DRIVE){
                     targetpos1[f] = zeropos[f] - 2;
                 }
-                else{
-                    targetpos2[f-NUMOFMANI1_DRIVE] = zeropos[f] - 2;
-                }
-            }
+                epos4_drive_pt[f].ptOutParam->TargetPosition=targetpos1[f];
 
-            epos4_drive_pt[f].ptOutParam->TargetPosition=targetpos[f];
+            }
+            else {
+                if (accprofile[f] < 0) {
+                    targetpos2[f - NUMOFMANI1_DRIVE] = zeropos[f] + 2;
+                }
+                else {
+                    targetpos2[f - NUMOFMANI1_DRIVE] = zeropos[f] - 2;
+                }
+                epos4_drive_pt[f].ptOutParam->TargetPosition=targetpos2[f - NUMOFMANI1_DRIVE];
+
+            }
 
             wait += 1;
             if (wait == step_size*1000)
@@ -1036,7 +1040,7 @@ void pub_run(void *arg)
 void traj_time(int32_t msgpos[])
 {
     int w =0;
-    for (int i=0; i<NUMOFEMANI1_DRIVE; i++)
+    for (int i=0; i<NUMOFMANI1_DRIVE; i++)
     {
 //        zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
         actualvel[i]=epos4_drive_pt[i].ptInParam->VelocityActualValue;
@@ -1138,7 +1142,7 @@ void traj_time(int32_t msgpos[])
 void traj_time2(int32_t msgpos[])
 {
     int w =0;
-    for (int i=NUMOFEMANI1_DRIVE; i<NUMOFEMANI_DRIVE; i++)
+    for (int i=NUMOFMANI1_DRIVE; i<NUMOFMANI_DRIVE; i++)
     {
 //        zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
         actualvel[i]=epos4_drive_pt[i].ptInParam->VelocityActualValue;
