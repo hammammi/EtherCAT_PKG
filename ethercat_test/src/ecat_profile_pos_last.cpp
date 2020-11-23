@@ -364,24 +364,11 @@ void EPOS_CSP(void *arg)
 
     rt_task_sleep_until(rt_ts); // wait until next REF clock
 
-    for (i=0; i<NUMOFEPOS4_DRIVE; i++)
-    {
-        zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
-        targetpos[i] = zeropos[i];
-//        ROS_INFO("%d,\t%d", i, targetpos[i]);
-//        c_1[i] = velprofile[i]*velprofile[i]/accprofile[i]*resol[i]/60.0;
-//        epos4_drive_pt[i].ptOutParam->TargetPosition=zeropos[i];
-//        if (abs(c_1[i])<abs(targetpos[i]-zeropos[i])){
-//            t1[i] = (int) (abs(velprofile[i]*rpm2ips[i]/(accprofile[i]*rpms2ipss[i])));
-//            t2[i] = (int) (abs((targetpos[i]-zeropos[i])/(velprofile[i]*rpm2ips[i])));
-//
-//        }
-//        else {
-//            t1[i] = (int) (sqrt(abs((targetpos[i]-zeropos[i]) / (accprofile[i] * rpms2ipss[i]))));
-//            t2[i] = (int) (2 * t1[i]);
-//        }
-
-    }
+//    for (i=0; i<NUMOFEPOS4_DRIVE; i++)
+//    {
+//        zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
+//        targetpos[i] = zeropos[i];
+//    }
 
 
     while (run)
@@ -424,6 +411,13 @@ void EPOS_CSP(void *arg)
                 if (started[i]) ServoState |= (1 << i);
                 if (abs(epos4_drive_pt[i].ptInParam->PositionActualValue-targetpos[i])<3) TargetState |= (1<<i);
                 else TargetState = 0;
+                if (ready_cnt<10)
+                {
+                    zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
+                    targetpos[i] = zeropos[i];
+                    epos4_drive_pt[i].ptOutParam->TargetPosition=zeropos[i];
+
+                }
             }
         }
 
