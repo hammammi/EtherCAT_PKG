@@ -61,12 +61,12 @@ int wait = 0;
 int recv_fail_cnt = 0;
 int gt = 0;
 
-int32_t zeropos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000}; // initial pos
+int32_t zeropos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300}; // initial pos
 double zerovel[NUMOFEPOS4_DRIVE] = {0}; // initial axis vel
 int32_t actualvel[NUMOFEPOS4_DRIVE] = {0}; // initial motor vel
-int32_t homepos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
+int32_t homepos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300};
 int32_t desinc[NUMOFEPOS4_DRIVE] = {0};
-int32_t targetpos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};  //{0};
+int32_t targetpos[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300};  //{0};
 double velprofile[] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
 double accprofile[] = {50, 50, 80, 80, 80, 80, 80};
 double gear_ratio[7] = {120, 120, 120, 120, 100, 100, 100};
