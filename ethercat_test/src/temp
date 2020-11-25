@@ -1253,11 +1253,11 @@ void motion_callback(const ethercat_test::pos& msg)
     traj_time(desinc1);
 
     gt = 0;
-    for (int i=0; i<7; ++i)
-    {
-        targetpos[i] = desinc1[i];
-    }
-//    memcpy(targetpos[:], &desinc1, sizeof(desinc1));
+//    for (int i=0; i<7; ++i)
+//    {
+//        targetpos[i] = desinc1[i];
+//    }
+    memcpy(targetpos, &desinc1, sizeof(desinc1));
 }
 
 void motion_callback2(const ethercat_test::pos& msg)
@@ -1270,11 +1270,11 @@ void motion_callback2(const ethercat_test::pos& msg)
 
     gt1 = 0;
 
-    for (int i=0; i<7; ++i)
-    {
-        targetpos[i+7] = desinc2[i];
-    }
-//    memcpy(targetpos2, &desinc2, sizeof(desinc2));
+//    for (int i=0; i<7; ++i)
+//    {
+//        targetpos[i+7] = desinc2[i];
+//    }
+    memcpy(&targetpos[7], &desinc2, sizeof(desinc2));
 }
 
 //void motion_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg)
