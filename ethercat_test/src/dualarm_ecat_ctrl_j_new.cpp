@@ -27,11 +27,9 @@
 #include "ecat_dc.h"
 
 #define EC_TIMEOUTMON 500
-#define NUMOFMANI1_DRIVE     7
-#define NUMOFMANI2_DRIVE     1
-#define NUMOFMANI_DRIVE     NUMOFMANI1_DRIVE + NUMOFMANI2_DRIVE
+#define NUMOFMANI_DRIVE     14
 #define NUMOFWHEEL_DRIVE    4
-#define NUMOFEPOS4_DRIVE	NUMOFMANI_DRIVE + NUMOFWHEEL_DRIVE
+#define NUMOFEPOS4_DRIVE	NUMOFMANI_DRIVE+NUMOFWHEEL_DRIVE
 #define NSEC_PER_SEC 1000000000
 
 
@@ -69,33 +67,39 @@ int wait = 0;
 int recv_fail_cnt = 0;
 int gt = 0, gt1 = 0;
 
-int32_t zeropos[NUMOFMANI_DRIVE] = {0}; // initial pos
-int32_t desinc1[NUMOFMANI1_DRIVE] = {0};
-int32_t desinc2[NUMOFMANI2_DRIVE] = {0};
-//int32_t targetpos[] = {0,0,0,0,0,0,0,
-//                       -63715, 38594, 37694, -20069, 85386, -72850, -5000};
-int32_t targetpos1[] = {0,0,0,0,0,0,0};
-int32_t targetpos2[] = {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
-int32_t homepos[] = {0,0,0,0,0,0,0,
-                     -63715, 38594, 37694, -20069, 85386, -72850, -5000};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
-double zerovel[NUMOFMANI_DRIVE] = {0};  // initial axis vel
-int32_t actualvel[NUMOFMANI_DRIVE] = {0}; // initial motor vel
+int32_t zeropos[14] = {0}; // initial pos
+int32_t desinc1[7] = {0};
+int32_t desinc2[7] = {0};
+int32_t targetpos[14] = {0};
+//int32_t targetpos1[7] = {0,0,0,0,0,0,0};
+//int32_t targetpos2[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300};
+int32_t homepos1[7] = {0,0,0,0,0,0,0};
+int32_t homepos2[7]= {-63715, 38594, 37694, -20069, 85386, -72850, -72300};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
+double zerovel[14] = {0};  // initial axis vel
+int32_t actualvel[14] = {0}; // initial motor vel
 
 
 //for ver1 i = 0~6, for ver2 i = 7~13
-double velprofile[] = {2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-                       4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0}; // axis rpm
-double accprofile[] = {2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5,
-                       2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5}; // axis rpm/s
+//double velprofile1[] = {2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0}; // axis rpm
+//double accprofile1[] = {2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5}; // axis rpm/s
+//double velprofile2[] = {4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0}; // axis rpm
+//double accprofile2[] = {2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5}; // axis rpm/s
 
-int c_1[NUMOFEPOS4_DRIVE] = {0};
-int c_2[NUMOFEPOS4_DRIVE] = {0};
+double velprofile[14] = {2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
+                         0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5}; // axis rpm
+double accprofile[14] = {2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5,
+                         50, 50, 50, 50, 50, 50, 50}; // axis rpm/s
 
-int t1[NUMOFEPOS4_DRIVE] = {0};
-int t2[NUMOFEPOS4_DRIVE] = {0};
-int t3[NUMOFEPOS4_DRIVE] = {0};
 
-int32_t wheeldes[NUMOFWHEEL_DRIVE] = {0};
+
+int c_1[14] = {0};
+int c_2[14] = {0};
+
+int t1[14] = {0};
+int t2[14] = {0};
+int t3[14] = {0};
+
+int32_t wheeldes[4] = {0};
 
 //double rad2inc = pow(2,18)/2.0/M_PI;
 //double rpm2ips = pow(2,18)/60000.0; // rpm to inc per step (ms)
@@ -108,8 +112,8 @@ int pulse_rev[] = {4096, 4096, 4096, 4096, 2048, 2048, 2048};
 //ver 2
 int encoder_bit[] = {18, 18, 18, 18, 18, 18, 18};
 
-double rad2inc[NUMOFMANI_DRIVE] = {0}, rpm2ips[NUMOFMANI_DRIVE] = {0}, rpms2ipss[NUMOFMANI_DRIVE] = {0};
-int resol[NUMOFMANI_DRIVE] = {0};
+double rad2inc[14] = {0}, rpm2ips[14] = {0}, rpms2ipss[14] = {0};
+int resol[14] = {0};
 
 
 int os;
@@ -120,17 +124,19 @@ uint8_t  ob3;
 
 void resol_conv(){
     int i = 0;
-    for (i=0;i<NUMOFMANI1_DRIVE;i++){
+    for (i=0;i<7;i++){
         resol[i] = 4*gear_ratio[i]*pulse_rev[i];  // axis rot to motor inc
         rad2inc[i] = resol[i]/2.0/M_PI; // axis 1 rad to motor inc
         rpm2ips[i] = resol[i]/sps/60.0; // axis rpm to motor inc per step (ms)
         rpms2ipss[i] = resol[i]/60.0/sps/sps; // rpm/sec to inc/step/step
+        printf("%i\n",resol[i]);
     }
-    for (i=NUMOFMANI1_DRIVE;i<NUMOFMANI_DRIVE;i++){
-        resol[i] = pow(2,encoder_bit[i-NUMOFMANI1_DRIVE]);  // axis rot to motor inc
+    for (i=7;i<14;i++){
+        resol[i] = pow(2,encoder_bit[i-7]);  // axis rot to motor inc
         rad2inc[i] = resol[i]/2.0/M_PI; // axis 1 rad to motor inc
         rpm2ips[i] = resol[i]/sps/60.0; // axis rpm to motor inc per step (ms)
         rpms2ipss[i] = resol[i]/60.0/sps/sps; // rpm/sec to inc/step/step
+        printf("%i\n",resol[i]);
     }
 }
 
@@ -150,11 +156,17 @@ boolean ecat_init(void)
         {
             rt_printf("%d slaves found and configured.\n", ec_slavecount);
 
-            for (int k=1; k<(NUMOFMANI_DRIVE+1); ++k)
+            for (int k=1; k<15; ++k)
             {
                 if (( ec_slavecount >= 1 ) && (strcmp(ec_slave[k+1].name,"EPOS4") == 0)) //change name for other drives
                 {
                     rt_printf("Re mapping for EPOS4 %d...\n", k);
+
+                    os=sizeof(ob3); ob3 = 0x00;	//RxPDO, check MAXPOS ESI
+                    wkc_count=ec_SDOread(k+1, 0x2000, 0x00, FALSE, &os, &ob3, EC_TIMEOUTRXM);
+
+                    rt_printf("NodeID %d...\n", ob3);
+
                     os=sizeof(ob); ob = 0x00;	//RxPDO, check MAXPOS ESI
                     //0x1c12 is Index of Sync Manager 2 PDO Assignment (output RxPDO), CA (Complete Access) must be TRUE
                     wkc_count=ec_SDOwrite(k+1, 0x1c12, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
@@ -243,7 +255,7 @@ boolean ecat_init(void)
                     os=sizeof(ob3); ob3 = 0x08;
                     wkc_count=ec_SDOwrite(k+1, 0x6060, 0x00, FALSE, os, &ob3, EC_TIMEOUTRXM);
                     // Following error window for position
-                    os=sizeof(ob); ob = 0x05F5E100; // Following error window
+                    os=sizeof(ob); ob = 0x0186A0; // Following error window
                     wkc_count=ec_SDOwrite(k+1, 0x6065, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
 
                     //os=sizeof(ob); ob = -0; // Software position limit min
@@ -252,22 +264,28 @@ boolean ecat_init(void)
                     //os=sizeof(ob); ob = 0; // Software position limit max
                     //wkc_count=ec_SDOwrite(k, 0x607D, 0x02, FALSE, os, &ob, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 24; // Digital input configuration
-                    if (k<(NUMOFMANI1_DRIVE+1)){
+                    os=sizeof(ob3); ob3 = 22; // Digital input configuration
+                    if (k<8){
                         wkc_count=ec_SDOwrite(k+1, 0x3142, 0x04, FALSE, os, &ob3, EC_TIMEOUTRXM); // for ver1
                     }
                     else{
                         wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM); // for ver2
                     }
-                    os=sizeof(ob3); ob3 = 28; // Digital input configuration, quick stop
+                    os=sizeof(ob3); ob3 = 20; // Digital input configuration, quick stop
                     wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
                 }
             }
-            for (int k=(NUMOFMANI_DRIVE+1); k<(NUMOFEPOS4_DRIVE+1); ++k)
+            for (int k=15; k<19; ++k)
             {
                 if (( ec_slavecount >= 1 ) && (strcmp(ec_slave[k+1].name,"EPOS4") == 0)) //change name for other drives
                 {
                     rt_printf("Re mapping for EPOS4 %d...\n", k);
+
+                    os=sizeof(ob3); ob3 = 0x00;	//RxPDO, check MAXPOS ESI
+                    wkc_count=ec_SDOread(k+1, 0x2000, 0x00, FALSE, &os, &ob3, EC_TIMEOUTRXM);
+
+                    rt_printf("NodeID %d...\n", ob3);
+
                     os=sizeof(ob); ob = 0x00;	//RxPDO, check MAXPOS ESI
                     //0x1c12 is Index of Sync Manager 2 PDO Assignment (output RxPDO), CA (Complete Access) must be TRUE
                     wkc_count=ec_SDOwrite(k+1, 0x1c12, 0x00, FALSE, os, &ob, EC_TIMEOUTRXM);
@@ -517,7 +535,7 @@ void EPOS_OP(void *arg)
             max_DCtime = cur_DCtime;
 
         //servo-on
-        for (i=0; i<NUMOFMANI_DRIVE; ++i)
+        for (i=0; i<14; ++i)
         {
             if (limit_flag)
                 epos4_drive_pt[i].ptOutParam->ControlWord=2;
@@ -528,26 +546,23 @@ void EPOS_OP(void *arg)
                 if (started[i]) ServoState |= (1 << i);
 //                if (abs(epos4_drive_pt[i].ptInParam->PositionActualValue-targetpos[i])<3) TargetState |= (1<<i);
 //                else TargetState = 0;
-                if (ready_cnt==1)
-                {
-                    zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
-                    if (i<NUMOFMANI1_DRIVE){
-                        targetpos1[i] = zeropos[i];
-                    }
-                    else{
-                        targetpos2[i] = zeropos[i];
-                    }
+                if (ready_cnt < 10) {
+                    zeropos[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
+                    targetpos[i] = zeropos[i];
+
+                    epos4_drive_pt[i].ptOutParam->TargetPosition = zeropos[i];
 
                 }
             }
+
         }
-        for (i=NUMOFMANI_DRIVE; i<NUMOFEPOS4_DRIVE; ++i)
-        {
-            controlword=0;
-            started[i]=ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
-            epos4_drive_pt[i].ptOutParam->ControlWord=controlword;
-            if (started[i]) ServoState |= (1<<i); //started[i] is same as enable
-        }
+//        for (i=14; i<NUMOFEPOS4_DRIVE; ++i)
+//        {
+//            controlword=0;
+//            started[i]=ServoOn_GetCtrlWrd(epos4_drive_pt[i].ptInParam->StatusWord, &controlword);
+//            epos4_drive_pt[i].ptOutParam->ControlWord=controlword;
+//            if (started[i]) ServoState |= (1<<i); //started[i] is same as enable
+//        }
 
 
         if (ServoState == (1<<NUMOFEPOS4_DRIVE)-1) //all servos are in ON state
@@ -566,7 +581,7 @@ void EPOS_OP(void *arg)
 
         if (sys_ready)
         {
-            for (i=0; i<NUMOFMANI1_DRIVE; i++)
+            for (i=0; i<7; i++)
             {
                 if (epos4_drive_pt[i].ptInParam->DigitalInput != 0x00000000)
                 {
@@ -579,14 +594,14 @@ void EPOS_OP(void *arg)
                 }
                 else
                 {
-                    if (targetpos1[i] >= zeropos[i]) {
+                    if (targetpos[i] >= zeropos[i]) {
                         velprofile[i] = abs(velprofile[i]);
                         accprofile[i] = abs(accprofile[i]);
 
                         c_1[i] = 0.5*(2 * velprofile[i] * velprofile[i] - zerovel[i] * zerovel[i]) * rpm2ips[i] * rpm2ips[i] /
                                  accprofile[i] / rpms2ipss[i];
 
-                        if ((targetpos1[i] - zeropos[i]) >= c_1[i]) {
+                        if ((targetpos[i] - zeropos[i]) >= c_1[i]) {
 
                             if (gt >= 0 && gt <= t1[i]) {
                                 p_des = (int) (zeropos[i] +
@@ -604,7 +619,7 @@ void EPOS_OP(void *arg)
                                                + 0.5 * (2 * velprofile[i] * rpm2ips[i] -
                                                         accprofile[i] * rpms2ipss[i] * (gt - t2[i])) * (gt - t2[i]));
                             } else {
-                                p_des = targetpos1[i];
+                                p_des = targetpos[i];
                             }
 
                             w = 1;
@@ -617,14 +632,14 @@ void EPOS_OP(void *arg)
                                 p_des = (int) (zeropos[i] + (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * t1[i]) * t1[i]
                                                + (zerovel[i] * rpm2ips[i] - 0.5 * accprofile[i] * rpms2ipss[i] * (gt-3*t1[i])) * (gt-t1[i]));
                             } else {
-                                p_des = targetpos1[i];
+                                p_des = targetpos[i];
                             }
 
                             w = 2;
 
                             if (zerovel[i] > 0) {
                                 c_2[i] = 0.5 * zerovel[i] * zerovel[i] * rpm2ips[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
-                                if ((targetpos1[i] - zeropos[i]) < c_2[i]) {
+                                if ((targetpos[i] - zeropos[i]) < c_2[i]) {
 
                                     if (gt >=0 && gt <= t2[i]) {
                                         p_des = (int) (zeropos[i] + zerovel[i] * rpm2ips[i] * gt - 0.5 * accprofile[i] * gt * gt * rpms2ipss[i]);
@@ -632,7 +647,7 @@ void EPOS_OP(void *arg)
                                         p_des = (int) (zeropos[i] + 0.5*(zerovel[i]* rpm2ips[i]*t1[i] - (t2[i]-t1[i])*(t2[i]-t1[i])*accprofile[i] * rpms2ipss[i])
                                                        - (gt - t2[i])*accprofile[i]*rpms2ipss[i]*((t2[i]-t1[i])-0.5*(gt - t2[i])));
                                     } else {
-                                        p_des = targetpos1[i];
+                                        p_des = targetpos[i];
                                     }
 
                                     w = 3;
@@ -648,7 +663,7 @@ void EPOS_OP(void *arg)
                                  rpm2ips[i] /
                                  accprofile[i] / rpms2ipss[i];
 
-                        if ((targetpos1[i] - zeropos[i]) <= c_1[i]) {
+                        if ((targetpos[i] - zeropos[i]) <= c_1[i]) {
 
                             if (gt >= 0 && gt <= t1[i]) {
                                 p_des = (int) (zeropos[i] +
@@ -667,7 +682,7 @@ void EPOS_OP(void *arg)
                                                + 0.5 * (2 * velprofile[i] * rpm2ips[i] -
                                                         accprofile[i] * rpms2ipss[i] * (gt - t2[i])) * (gt - t2[i]));
                             } else {
-                                p_des = targetpos1[i];
+                                p_des = targetpos[i];
                             }
 
                             w = 4;
@@ -686,7 +701,7 @@ void EPOS_OP(void *arg)
                                                   0.5 * accprofile[i] * rpms2ipss[i] * (gt - 3 * t1[i])) *
                                                  (gt - t1[i]));
                             } else {
-                                p_des = targetpos1[i];
+                                p_des = targetpos[i];
                             }
 
                             w = 5;
@@ -694,7 +709,7 @@ void EPOS_OP(void *arg)
                             if (zerovel[i] < 0) {
                                 c_2[i] = 0.5 * zerovel[i] * zerovel[i] * rpm2ips[i] * rpm2ips[i] / accprofile[i] /
                                          rpms2ipss[i];
-                                if ((targetpos1[i] - zeropos[i]) > c_2[i]) {
+                                if ((targetpos[i] - zeropos[i]) > c_2[i]) {
 
                                     if (gt >= 0 && gt <= t2[i]) {
                                         p_des = (int) (zeropos[i] + zerovel[i] * rpm2ips[i] * gt -
@@ -706,7 +721,7 @@ void EPOS_OP(void *arg)
                                                        - (gt - t2[i]) * accprofile[i] * rpms2ipss[i] *
                                                          ((t2[i] - t1[i]) - 0.5 * (gt - t2[i])));
                                     } else {
-                                        p_des = targetpos1[i];
+                                        p_des = targetpos[i];
                                     }
 
                                     w = 6;
@@ -719,7 +734,7 @@ void EPOS_OP(void *arg)
                 }
             }
 
-            for (i=NUMOFMANI1_DRIVE; i<NUMOFMANI2_DRIVE; i++)
+            for (i=7; i<14; i++)
             {
                 if (epos4_drive_pt[i].ptInParam->DigitalInput != 0x00000000)
                 {
@@ -732,14 +747,14 @@ void EPOS_OP(void *arg)
                 }
                 else
                 {
-                    if (targetpos2[i-NUMOFMANI1_DRIVE] >= zeropos[i]) {
+                    if (targetpos[i] >= zeropos[i]) {
                         velprofile[i] = abs(velprofile[i]);
                         accprofile[i] = abs(accprofile[i]);
 
                         c_1[i] = 0.5*(2 * velprofile[i] * velprofile[i] - zerovel[i] * zerovel[i]) * rpm2ips[i] * rpm2ips[i] /
                                  accprofile[i] / rpms2ipss[i];
 
-                        if ((targetpos2[i-NUMOFMANI1_DRIVE] - zeropos[i]) >= c_1[i]) {
+                        if ((targetpos[i] - zeropos[i]) >= c_1[i]) {
 
                             if (gt1 >= 0 && gt1 <= t1[i]) {
                                 p_des = (int) (zeropos[i] +
@@ -757,7 +772,7 @@ void EPOS_OP(void *arg)
                                                + 0.5 * (2 * velprofile[i] * rpm2ips[i] -
                                                         accprofile[i] * rpms2ipss[i] * (gt1 - t2[i])) * (gt1 - t2[i]));
                             } else {
-                                p_des = targetpos2[i-NUMOFMANI1_DRIVE];
+                                p_des = targetpos[i];
                             }
 
                             w = 1;
@@ -766,18 +781,18 @@ void EPOS_OP(void *arg)
 
                             if (gt1 >= 0 && gt1 <= t1[i]) {
                                 p_des = (int) (zeropos[i] + (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * gt1) * gt1);
-                            }else if (gt1 <= t2[i]) {
+                            }else if (gt <= t2[i]) {
                                 p_des = (int) (zeropos[i] + (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * t1[i]) * t1[i]
                                                + (zerovel[i] * rpm2ips[i] - 0.5 * accprofile[i] * rpms2ipss[i] * (gt1-3*t1[i])) * (gt1-t1[i]));
                             } else {
-                                p_des = targetpos2[i-NUMOFMANI1_DRIVE];
+                                p_des = targetpos[i];
                             }
 
                             w = 2;
 
                             if (zerovel[i] > 0) {
                                 c_2[i] = 0.5 * zerovel[i] * zerovel[i] * rpm2ips[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
-                                if ((targetpos2[i-NUMOFMANI1_DRIVE] - zeropos[i]) < c_2[i]) {
+                                if ((targetpos[i] - zeropos[i]) < c_2[i]) {
 
                                     if (gt1 >=0 && gt1 <= t2[i]) {
                                         p_des = (int) (zeropos[i] + zerovel[i] * rpm2ips[i] * gt1 - 0.5 * accprofile[i] * gt1 * gt1 * rpms2ipss[i]);
@@ -785,7 +800,7 @@ void EPOS_OP(void *arg)
                                         p_des = (int) (zeropos[i] + 0.5*(zerovel[i]* rpm2ips[i]*t1[i] - (t2[i]-t1[i])*(t2[i]-t1[i])*accprofile[i] * rpms2ipss[i])
                                                        - (gt1 - t2[i])*accprofile[i]*rpms2ipss[i]*((t2[i]-t1[i])-0.5*(gt1 - t2[i])));
                                     } else {
-                                        p_des = targetpos2[i-NUMOFMANI1_DRIVE];
+                                        p_des = targetpos[i];
                                     }
 
                                     w = 3;
@@ -801,7 +816,7 @@ void EPOS_OP(void *arg)
                                  rpm2ips[i] /
                                  accprofile[i] / rpms2ipss[i];
 
-                        if ((targetpos2[i-NUMOFMANI1_DRIVE] - zeropos[i]) <= c_1[i]) {
+                        if ((targetpos[i] - zeropos[i]) <= c_1[i]) {
 
                             if (gt1 >= 0 && gt1 <= t1[i]) {
                                 p_des = (int) (zeropos[i] +
@@ -820,7 +835,7 @@ void EPOS_OP(void *arg)
                                                + 0.5 * (2 * velprofile[i] * rpm2ips[i] -
                                                         accprofile[i] * rpms2ipss[i] * (gt1 - t2[i])) * (gt1 - t2[i]));
                             } else {
-                                p_des = targetpos2[i-NUMOFMANI1_DRIVE];
+                                p_des = targetpos[i];
                             }
 
                             w = 4;
@@ -830,7 +845,7 @@ void EPOS_OP(void *arg)
                             if (gt1 >= 0 && gt1 <= t1[i]) {
                                 p_des = (int) (zeropos[i] +
                                                (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * gt1) *
-                                               gt1);
+                                               gt);
                             } else if (gt1 <= t2[i]) {
                                 p_des = (int) (zeropos[i] +
                                                (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * t1[i]) *
@@ -839,7 +854,7 @@ void EPOS_OP(void *arg)
                                                   0.5 * accprofile[i] * rpms2ipss[i] * (gt1 - 3 * t1[i])) *
                                                  (gt1 - t1[i]));
                             } else {
-                                p_des = targetpos2[i-NUMOFMANI1_DRIVE];
+                                p_des = targetpos[i];
                             }
 
                             w = 5;
@@ -847,7 +862,7 @@ void EPOS_OP(void *arg)
                             if (zerovel[i] < 0) {
                                 c_2[i] = 0.5 * zerovel[i] * zerovel[i] * rpm2ips[i] * rpm2ips[i] / accprofile[i] /
                                          rpms2ipss[i];
-                                if ((targetpos2[i-NUMOFMANI1_DRIVE] - zeropos[i]) > c_2[i]) {
+                                if ((targetpos[i] - zeropos[i]) > c_2[i]) {
 
                                     if (gt1 >= 0 && gt1 <= t2[i]) {
                                         p_des = (int) (zeropos[i] + zerovel[i] * rpm2ips[i] * gt1 -
@@ -859,7 +874,7 @@ void EPOS_OP(void *arg)
                                                        - (gt1 - t2[i]) * accprofile[i] * rpms2ipss[i] *
                                                          ((t2[i] - t1[i]) - 0.5 * (gt1 - t2[i])));
                                     } else {
-                                        p_des = targetpos2[i-NUMOFMANI1_DRIVE];
+                                        p_des = targetpos[i];
                                     }
 
                                     w = 6;
@@ -872,12 +887,12 @@ void EPOS_OP(void *arg)
                 }
             }
 
-            for (i=NUMOFMANI_DRIVE;i<NUMOFEPOS4_DRIVE; ++i)
-            {
-                epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i-NUMOFMANI_DRIVE];
-                if(epos4_drive_pt[i].ptInParam->ErrorCode != 0)
-                    rt_printf("Error : 0x%x %d\n",epos4_drive_pt[i].ptInParam->ErrorCode, rt_timer_read());
-            }
+//            for (i=14;i<NUMOFEPOS4_DRIVE; ++i)
+//            {
+//                epos4_drive_pt[i].ptOutParam->TargetVelocity=wheeldes[i-NUMOFMANI_DRIVE];
+//                if(epos4_drive_pt[i].ptInParam->ErrorCode != 0)
+//                    rt_printf("Error : 0x%x %d\n",epos4_drive_pt[i].ptInParam->ErrorCode, rt_timer_read());
+//            }
             gt+=1;
             gt1 +=1;
 
@@ -885,10 +900,10 @@ void EPOS_OP(void *arg)
 
         else
         {
-            for (i=NUMOFMANI_DRIVE;i<NUMOFEPOS4_DRIVE; ++i)
-            {
-                epos4_drive_pt[i].ptOutParam->TargetVelocity=0;
-            }
+//            for (i=NUMOFMANI_DRIVE;i<NUMOFEPOS4_DRIVE; ++i)
+//            {
+//                epos4_drive_pt[i].ptOutParam->TargetVelocity=0;
+//            }
         }
 
 
@@ -899,30 +914,18 @@ void EPOS_OP(void *arg)
         {
             zeropos[f]=epos4_drive_pt[f].ptInParam->PositionActualValue;
 
-
-            if (f<NUMOFMANI1_DRIVE){
-
-                if (accprofile[f] <0){
-                    targetpos1[f] = zeropos[f] + 2;
-                }
-                else{
-                    targetpos1[f] = zeropos[f] - 2;
-                }
-                epos4_drive_pt[f].ptOutParam->TargetPosition=targetpos1[f];
-
+            if (accprofile[f] <0){
+                targetpos[f] = zeropos[f] + 2;
             }
-            else {
-                if (accprofile[f] < 0) {
-                    targetpos2[f - NUMOFMANI1_DRIVE] = zeropos[f] + 2;
-                }
-                else {
-                    targetpos2[f - NUMOFMANI1_DRIVE] = zeropos[f] - 2;
-                }
-                epos4_drive_pt[f].ptOutParam->TargetPosition=targetpos2[f - NUMOFMANI1_DRIVE];
-
+            else{
+                targetpos[f] = zeropos[f] - 2;
             }
+            epos4_drive_pt[f].ptOutParam->TargetPosition=targetpos[f];
 
             wait += 1;
+            if (wait==0) {
+                rt_printf("joint #%i is limit position, \n", f);
+            }
             if (wait == step_size*1000)
                 run = 0;
         }
@@ -963,7 +966,7 @@ void EPOS_OP(void *arg)
 
 void pub_run(void *arg)
 {
-    int i;
+    int i, print_stop = 1;
     unsigned long itime = 0;
     long stick = 0;
     int argc;
@@ -997,36 +1000,49 @@ void pub_run(void *arg)
             }
             else
             {
-                itime++;
-                rt_printf("\nTime = %06d.%01d, \e[32;1m fail=%ld\e[0m, ecat_T=%ld, maxT=%ld\n",
-                          itime/10, itime%10, recv_fail_cnt, ethercat_time/1000, worst_time/1000);
-                for( i=0; i<NUMOFMANI_DRIVE; i++)
+                if (limit_flag)
                 {
-                    rt_printf("EPOS4_DRIVE #%i\n", i+1);
-                    rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
-                    rt_printf("Actual/Target = %i / %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue, epos4_drive_pt[i].ptOutParam->TargetPosition);
+                    if (print_stop<500) {
+                        i =11;
+                        rt_printf("#%i, Actual/Target = %i / %i/ %i\n", i,
+                                      epos4_drive_pt[i].ptInParam->PositionActualValue,
+                                      epos4_drive_pt[i].ptOutParam->TargetPosition, epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
+
+                        print_stop+=1;
+                    }
+                }
+                else {
+                    itime++;
+//                    rt_printf("\nTime = %06d.%01d, \e[32;1m fail=%ld\e[0m, ecat_T=%ld, maxT=%ld\n",
+//                              itime / 10, itime % 10, recv_fail_cnt, ethercat_time / 1000, worst_time / 1000);
+                    for (i = 0; i < 14; i++) {
+                        if (i==13){
+                        rt_printf("EPOS4_DRIVE #%i\n", i + 1);
+                        rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
+                        rt_printf("Actual/Target = %i / %i\n", epos4_drive_pt[i].ptInParam->PositionActualValue,
+                                  epos4_drive_pt[i].ptOutParam->TargetPosition); }
 //                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);
-                    if (i<NUMOFMANI1_DRIVE) {
-                        p_msg.position[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
+                        if (i < 7) {
+                            p_msg.position[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
+                        } else {
+                            p_msg2.position[i - 7] = epos4_drive_pt[i].ptInParam->PositionActualValue;
+                        }
+                        rt_printf("\n");
                     }
-                    else{
-                        p_msg2.position[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
-                    }
-                    rt_printf("\n");
-                }
-                for ( i=NUMOFMANI_DRIVE;i<NUMOFEPOS4_DRIVE;i++)
-                {
-                    rt_printf("Wheel #%i\n", (i-NUMOFMANI_DRIVE+1));
-                    rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
-                    rt_printf("Actual/Target = %i / %i\n" , epos4_drive_pt[i].ptInParam->VelocityActualValue, epos4_drive_pt[i].ptOutParam->TargetVelocity);
-////                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);t_printf("EPOS4_DRIVE #%i\n", i+1);
+//                    for (i = 14; i < NUMOFEPOS4_DRIVE; i++) {
+//                        rt_printf("Wheel #%i\n", i - 13);
+//                        rt_printf("Statusword = 0x%x\n", epos4_drive_pt[i].ptInParam->StatusWord);
+//                        rt_printf("Actual/Target = %i / %i\n", epos4_drive_pt[i].ptInParam->VelocityActualValue,
+//                                  epos4_drive_pt[i].ptOutParam->TargetVelocity);
+//////                    rt_printf("Following error = %i\n" , epos4_drive_pt[i].ptInParam->PositionActualValue-epos4_drive_pt[i].ptOutParam->TargetPosition);t_printf("EPOS4_DRIVE #%i\n", i+1);
+////
+//                        v_msg.velocity[i - 14] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
+//                    }
 //
-                    v_msg.velocity[i-NUMOFMANI_DRIVE] = epos4_drive_pt[i].ptInParam->VelocityActualValue;
+                    pos_pub1.publish(p_msg);
+                    pos_pub2.publish(p_msg2);
+                    vel_pub.publish(v_msg);
                 }
-//
-                pos_pub1.publish(p_msg);
-                pos_pub2.publish(p_msg2);
-                vel_pub.publish(v_msg);
 
 
 //
@@ -1040,7 +1056,7 @@ void pub_run(void *arg)
 void traj_time(int32_t msgpos[])
 {
     int w =0;
-    for (int i=0; i<NUMOFMANI1_DRIVE; i++)
+    for (int i=0; i<7; i++)
     {
 //        zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
         actualvel[i]=epos4_drive_pt[i].ptInParam->VelocityActualValue;
@@ -1142,7 +1158,7 @@ void traj_time(int32_t msgpos[])
 void traj_time2(int32_t msgpos[])
 {
     int w =0;
-    for (int i=NUMOFMANI1_DRIVE; i<NUMOFMANI_DRIVE; i++)
+    for (int i=7; i<14; i++)
     {
 //        zeropos[i]=epos4_drive_pt[i].ptInParam->PositionActualValue;
         actualvel[i]=epos4_drive_pt[i].ptInParam->VelocityActualValue;
@@ -1154,7 +1170,7 @@ void traj_time2(int32_t msgpos[])
 //        zerovel[i]=-160/gear_ratio[i];
 
 
-        if (msgpos[i] >= zeropos[i]) {
+        if (msgpos[i-7] >= zeropos[i]) {
             velprofile[i] = abs(velprofile[i]);
             accprofile[i] = abs(accprofile[i]);
 
@@ -1165,19 +1181,19 @@ void traj_time2(int32_t msgpos[])
             c_1[i] = 0.5*(2 * velprofile[i] * velprofile[i] - zerovel[i] * zerovel[i]) * rpm2ips[i] * rpm2ips[i] /
                      accprofile[i] / rpms2ipss[i];
 
-            if ((msgpos[i] - zeropos[i]) >= c_1[i]) {
+            if ((msgpos[i-7] - zeropos[i]) >= c_1[i]) {
                 t1[i] = (velprofile[i] - zerovel[i]) * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
-                t2[i] = ((msgpos[i] - zeropos[i]) + 0.5 * (-velprofile[i] * velprofile[i] +
-                                                           (velprofile[i] - zerovel[i]) *
-                                                           (velprofile[i] - zerovel[i])) * rpm2ips[i] * rpm2ips[i] /
-                                                    accprofile[i] / rpms2ipss[i]) / velprofile[i] / rpm2ips[i];
+                t2[i] = ((msgpos[i-7] - zeropos[i]) + 0.5 * (-velprofile[i] * velprofile[i] +
+                                                             (velprofile[i] - zerovel[i]) *
+                                                             (velprofile[i] - zerovel[i])) * rpm2ips[i] * rpm2ips[i] /
+                                                      accprofile[i] / rpms2ipss[i]) / velprofile[i] / rpm2ips[i];
                 t3[i] = t2[i] + velprofile[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
 
                 w = 1;
 
             } else {
                 t1[i] = (-zerovel[i] * rpm2ips[i] + sqrt(0.5 * zerovel[i] * rpm2ips[i] * zerovel[i] * rpm2ips[i]
-                                                         + accprofile[i] * rpms2ipss[i] * (msgpos[i] - zeropos[i]))) /
+                                                         + accprofile[i] * rpms2ipss[i] * (msgpos[i-7] - zeropos[i]))) /
                         accprofile[i] / rpms2ipss[i];
                 t2[i] = 2 * t1[i] + zerovel[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
 
@@ -1185,10 +1201,10 @@ void traj_time2(int32_t msgpos[])
 
                 if (zerovel[i] > 0) {
                     c_2[i] = 0.5 * zerovel[i] * zerovel[i] * rpm2ips[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
-                    if ((msgpos[i] - zeropos[i]) < c_2[i]) {
+                    if ((msgpos[i-7] - zeropos[i]) < c_2[i]) {
                         t1[i] = zerovel[i]*rpm2ips[i]/accprofile[i]/rpms2ipss[i];
-                        t2[i] = t1[i]+sqrt(-(msgpos[i]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
-                        t3[i] = t2[i]+sqrt(-(msgpos[i]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
+                        t2[i] = t1[i]+sqrt(-(msgpos[i-7]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
+                        t3[i] = t2[i]+sqrt(-(msgpos[i-7]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
 
                         w = 3;
                     }
@@ -1206,19 +1222,19 @@ void traj_time2(int32_t msgpos[])
             c_1[i] = 0.5*(2 * velprofile[i] * velprofile[i] - zerovel[i] * zerovel[i]) * rpm2ips[i] * rpm2ips[i] /
                      accprofile[i] / rpms2ipss[i];
 
-            if ((msgpos[i] - zeropos[i]) <= c_1[i]) {
+            if ((msgpos[i-7] - zeropos[i]) <= c_1[i]) {
                 t1[i] = (velprofile[i] - zerovel[i]) * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
-                t2[i] = ((msgpos[i] - zeropos[i]) + 0.5 * (-velprofile[i] * velprofile[i] +
-                                                           (velprofile[i] - zerovel[i]) *
-                                                           (velprofile[i] - zerovel[i])) * rpm2ips[i] * rpm2ips[i] /
-                                                    accprofile[i] / rpms2ipss[i]) / velprofile[i] / rpm2ips[i];
+                t2[i] = ((msgpos[i-7] - zeropos[i]) + 0.5 * (-velprofile[i] * velprofile[i] +
+                                                             (velprofile[i] - zerovel[i]) *
+                                                             (velprofile[i] - zerovel[i])) * rpm2ips[i] * rpm2ips[i] /
+                                                      accprofile[i] / rpms2ipss[i]) / velprofile[i] / rpm2ips[i];
                 t3[i] = t2[i] + velprofile[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
 
                 w = 4;
 
             } else {
                 t1[i] = (-zerovel[i] * rpm2ips[i] - sqrt(0.5 * zerovel[i] * rpm2ips[i] * zerovel[i] * rpm2ips[i]
-                                                         + accprofile[i] * rpms2ipss[i] * (msgpos[i] - zeropos[i]))) /
+                                                         + accprofile[i] * rpms2ipss[i] * (msgpos[i-7] - zeropos[i]))) /
                         accprofile[i] / rpms2ipss[i];
                 t2[i] = 2 * t1[i] + zerovel[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
 
@@ -1226,16 +1242,21 @@ void traj_time2(int32_t msgpos[])
 
                 if (zerovel[i] < 0) {
                     c_2[i] = 0.5 * zerovel[i] * zerovel[i] * rpm2ips[i] * rpm2ips[i] / accprofile[i] / rpms2ipss[i];
-                    if ((msgpos[i] - zeropos[i]) > c_2[i]) {
+                    if ((msgpos[i-7] - zeropos[i]) > c_2[i]) {
                         t1[i] = zerovel[i]*rpm2ips[i]/accprofile[i]/rpms2ipss[i];
-                        t2[i] = t1[i]+sqrt(-(msgpos[i]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
-                        t3[i] = t2[i]+sqrt(-(msgpos[i]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
+                        t2[i] = t1[i]+sqrt(-(msgpos[i-7]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
+                        t3[i] = t2[i]+sqrt(-(msgpos[i-7]-zeropos[i]-zerovel[i]*zerovel[i]* rpm2ips[i]* rpm2ips[i]*0.5/accprofile[i]/rpms2ipss[i])/accprofile[i]/rpms2ipss[i]);
 
                         w = 6;
                     }
                 }
             }
 
+        }
+                if (i==11) {
+            rt_printf("case %i\n", w);
+            rt_printf("%d, %d, %d, %d, %f,%f, %f\n", zeropos[i], msgpos[i],msgpos[i]-zeropos[i],actualvel[i],zerovel[i],accprofile[i],velprofile[i]);
+            rt_printf("c, %i, %i, t,%d, %d, %d\n", c_1[i], c_2[i],t1[i],t2[i],t3[i]);
         }
 
     }
@@ -1244,27 +1265,36 @@ void traj_time2(int32_t msgpos[])
 
 void motion_callback(const ethercat_test::pos& msg)
 {
-    for (int i=0; i<NUMOFMANI1_DRIVE; i++)
+    for (int i=0; i<7; i++)
     {
-        desinc1[i] = int (msg.position[i]*resol[i]/360.0)+ homepos[i];
+        desinc1[i] = int (msg.position[i]*resol[i]/360.0)+ homepos1[i];
 
     }
     traj_time(desinc1);
 
     gt = 0;
-    memcpy(targetpos1, &desinc1, sizeof(desinc1));
+//    for (int i=0; i<7; ++i)
+//    {
+//        targetpos[i] = desinc1[i];
+//    }
+    memcpy(targetpos, &desinc1, sizeof(desinc1));
 }
 
 void motion_callback2(const ethercat_test::pos& msg)
 {
-    for (int i=0; i<NUMOFMANI2_DRIVE; ++i)
+    for (int i=0; i<7; ++i)
     {
-        desinc2[i] = int (msg.position[i]*resol[i+NUMOFMANI1_DRIVE]/360.0) + homepos[i+7];
+        desinc2[i] = int (msg.position[i]*resol[i+7]/360.0) + homepos2[i];
     }
-    traj_time(desinc2);
+    traj_time2(desinc2);
 
     gt1 = 0;
-    memcpy(targetpos2, &desinc2, sizeof(desinc2));
+
+//    for (int i=0; i<7; ++i)
+//    {
+//        targetpos[i+7] = desinc2[i];
+//    }
+    memcpy(&targetpos[7], &desinc2, sizeof(desinc2));
 }
 
 //void motion_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg)
@@ -1320,7 +1350,7 @@ void motion_callback2(const ethercat_test::pos& msg)
 
 void wheel_callback(const ethercat_test::vel& msg)
 {
-    for(int i = 0; i < NUMOFWHEEL_DRIVE;++i)
+    for(int i = 0; i < 4;++i)
         wheeldes[i] = msg.velocity[i];
 }
 
