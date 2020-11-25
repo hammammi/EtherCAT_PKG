@@ -546,11 +546,7 @@ void EPOS_OP(void *arg)
 //                else TargetState = 0;
                 if (ready_cnt < 10) {
                     zeropos[i] = epos4_drive_pt[i].ptInParam->PositionActualValue;
-                    if (i < 7) {
-                        targetpos[i] = zeropos[i];
-                    } else {
-                        targetpos[i] = zeropos[i];
-                    }
+                    targetpos[i] = zeropos[i];
                     epos4_drive_pt[i].ptOutParam->TargetPosition = zeropos[i];
 
                 }
