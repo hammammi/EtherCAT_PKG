@@ -50,7 +50,7 @@ int sys_ready = 0;
 int recv_fail_cnt = 0;
 int wait = 0;
 
-int32_t homeoffset[] ={1183288,685834,1064152,586632,331032,248261,248592};// for ver1
+int32_t homeoffset[] ={1183288,685834,1064152,586632,331032,248261,368469};// for ver1
 
 int first_step[] = {0,2,4,6};//0,2,4,6}; //vertical axis
 int second_step[] = {1,3,5};//1,3,5};  //horizontal axis
