@@ -1383,8 +1383,8 @@ int main(int argc, char** argv)
 
     ros::init(argc, argv, "dualarm_sub");
     ros::NodeHandle n;
-    ros::Subscriber pos_sub1 = n.subscribe("ourarm/robotic_arm_controller/follow_joint_trajectory/goal", 1, motion_callback);
-    ros::Subscriber pos_sub2 = n.subscribe("ourarm/robotic_arm_controller/follow_joint_trajectory/goal2", 1, motion_callback2);
+    ros::Subscriber pos_sub1 = n.subscribe("mani1_config/robotic_arm_controller/follow_joint_trajectory/goal", 1, motion_callback);
+    ros::Subscriber pos_sub2 = n.subscribe("mani1_config/robotic_arm_controller/follow_joint_trajectory/goal2", 1, motion_callback2);
 
     //    ros::Subscriber pos2_sub = n.subscribe("pos_des2", 1, motion_callback2);
     ros::Subscriber vel_sub = n.subscribe("input_msg",1, wheel_callback);
