@@ -781,7 +781,7 @@ void EPOS_OP(void *arg)
 
                             if (gt1 >= 0 && gt1 <= t1[i]) {
                                 p_des = (int) (zeropos[i] + (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * gt1) * gt1);
-                            }else if (gt <= t2[i]) {
+                            }else if (gt1 <= t2[i]) {
                                 p_des = (int) (zeropos[i] + (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * t1[i]) * t1[i]
                                                + (zerovel[i] * rpm2ips[i] - 0.5 * accprofile[i] * rpms2ipss[i] * (gt1-3*t1[i])) * (gt1-t1[i]));
                             } else {
@@ -845,7 +845,7 @@ void EPOS_OP(void *arg)
                             if (gt1 >= 0 && gt1 <= t1[i]) {
                                 p_des = (int) (zeropos[i] +
                                                (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * gt1) *
-                                               gt);
+                                               gt1);
                             } else if (gt1 <= t2[i]) {
                                 p_des = (int) (zeropos[i] +
                                                (zerovel[i] * rpm2ips[i] + 0.5 * accprofile[i] * rpms2ipss[i] * t1[i]) *
