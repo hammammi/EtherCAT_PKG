@@ -61,12 +61,12 @@ int wait = 0;
 int recv_fail_cnt = 0;
 int gt = 0, traj =0;
 
-int32_t zeropos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300}; // initial pos
+int32_t zeropos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -12212, -72300}; // initial pos
 double zerovel[NUMOFEPOS4_DRIVE] = {0}; // initial vel
 int32_t actualvel[NUMOFEPOS4_DRIVE] = {0}; // initial vel
-int32_t homepos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300};//{-63715, 38594, 37694, -20069, 85386};
+int32_t homepos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -12212, -72300};//{-63715, 38594, 37694, -20069, 85386};
 int32_t desinc[NUMOFEPOS4_DRIVE] = {0};
-int32_t targetpos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300};//{-63715, 38594, 37694, -20069, 85386};
+int32_t targetpos[NUMOFEPOS4_DRIVE] = {-63715, 38594, 37694, -20069, 85386, -12212, -72300};//{-63715, 38594, 37694, -20069, 85386};
 //double velprofile[] = {4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0}; // axis rpm
 //double accprofile[] = {2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5}; //
 double velprofile[] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5}; // axis rpm
