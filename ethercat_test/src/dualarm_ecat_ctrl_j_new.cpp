@@ -74,7 +74,7 @@ int32_t targetpos[14] = {0};
 //int32_t targetpos1[7] = {0,0,0,0,0,0,0};
 //int32_t targetpos2[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300};
 int32_t homepos1[7] = {0,0,0,0,0,0,0};
-int32_t homepos2[7]= {-63715, 38594, 37694, -20069, 85386, -72850, -72300};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069, 85386, -72850, -5000};
+int32_t homepos2[7]= {-63715, 38594, 37694, -20069, 85386, -12212, -72300};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069, 85386, -12212, -72300};
 double zerovel[14] = {0};  // initial axis vel
 int32_t actualvel[14] = {0}; // initial motor vel
 
@@ -271,7 +271,7 @@ boolean ecat_init(void)
                     else{
                         wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM); // for ver2
                     }
-                    os=sizeof(ob3); ob3 = 20; // Digital input configuration, quick stop
+                    os=sizeof(ob3); ob3 = 20; // Digital input configuration
                     wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
                 }
             }
