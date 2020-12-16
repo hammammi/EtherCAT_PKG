@@ -232,7 +232,7 @@ boolean ecat_init(uint32_t mode)
                     os=sizeof(ob3); ob3 = 22; // Digital input configuration
                     wkc_count=ec_SDOwrite(k+1, 0x3142, 0x01, FALSE, os, &ob3, EC_TIMEOUTRXM);
 
-                    os=sizeof(ob3); ob3 = 23; // Digital input configuration, quick stop
+                    os=sizeof(ob3); ob3 = 23; // Digital input configuration
                     wkc_count=ec_SDOwrite(k+1, 0x3142, 0x02, FALSE, os, &ob3, EC_TIMEOUTRXM);
                 }
             }
