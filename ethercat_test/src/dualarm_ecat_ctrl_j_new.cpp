@@ -2,7 +2,7 @@
 // Created by mservo lab, Jeong
 // Modified with Wonseok Jeon on 20. 11. 11...
 // This is for Dual-arm mobile platform
-//
+// homepos changed for ver2 on 21. 01. 29
 
 #include <ros/ros.h>
 #include <stdio.h>
@@ -72,9 +72,9 @@ int32_t desinc1[7] = {0};
 int32_t desinc2[7] = {0};
 int32_t targetpos[14] = {0};
 //int32_t targetpos1[7] = {0,0,0,0,0,0,0};
-//int32_t targetpos2[7] = {-63715, 38594, 37694, -20069, 85386, -72850, -72300};
+//int32_t targetpos2[7] = {-63715, 38594, 37694, -20069, 19850, -12212, -72300};
 int32_t homepos1[7] = {0,0,0,0,0,0,0};
-int32_t homepos2[7]= {-63715, 38594, 37694, -20069, 85386, -12212, -72300};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069, 85386, -12212, -72300};
+int32_t homepos2[7]= {-63715, 38594, 37694, -20069, 19850, -12212, -72300};// for ver1 : 0, for ver2 : each home position {-63715, 38594, 37694, -20069, 85386, -12212, -72300};
 double zerovel[14] = {0};  // initial axis vel
 int32_t actualvel[14] = {0}; // initial motor vel
 
