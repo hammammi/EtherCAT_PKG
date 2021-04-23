@@ -876,7 +876,7 @@ int main(int argc, char** argv)
   
     resol_conv();
 
-    ros::init(argc, argv, "dualarm_sub");
+    ros::init(argc, argv, "singlearm_sub");
     ros::NodeHandle n;
     ros::Subscriber pos_sub = n.subscribe("ourarm/robotic_arm_controller/follow_joint_trajectory/goal", 1, motion_callback);
 
